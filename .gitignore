@@ -13,9 +13,16 @@ $RECYCLE.BIN/
 *.msi
 *.msm
 *.msp
+*.zip
+*.exe
+glew32.dll
 
 # Windows shortcuts
 *.lnk
+
+wav
+kv6
+fonts
 
 # =========================
 # Operating System Files
