@@ -58,6 +58,8 @@ B		- Switch shadows
 
 L		- show light view (only in shadow mode)
 
+R		- reload weapon
+
 
 Helping out
 =========
