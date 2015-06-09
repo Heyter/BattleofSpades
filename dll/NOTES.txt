@@ -1,0 +1,10 @@
+Before compiling you'll need to download the latest enet release
+from here: http://enet.bespin.org/Downloads.html
+
+Extract the file to somewhere on your computer and copy the 'enet' folder inside the
+'include' directory and paste it into this ('dll') location.
+
+Then grab the enet.lib and also paste it in here. It should be now all good,
+now go ahead and call compile.
+
+Better use MinGW for compiling on windows.

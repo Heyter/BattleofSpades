@@ -16,6 +16,9 @@ $RECYCLE.BIN/
 *.zip
 *.exe
 glew32.dll
+enet.dll
+dll/enet
+enet.lib
 
 # Windows shortcuts
 *.lnk
