@@ -41,6 +41,9 @@ Global score_max.l = 10
 Global map_loaded = 0
 
 Global Dim blocks.l(512,64,512)
+Global Dim lightlevels.l(512,64,512)
+Global map_overview_tmp_image.l = CreateImage(#PB_Any,512,512,24)
+Global map_texture_id.l = -1
 
 Global Dim tracer_used.l(512)
 Global Dim tracer_x.f(512)
@@ -57,9 +60,6 @@ Global last_physics_update.l
 Global Dim display_list_ids.l(64,64)
 Global Dim display_list_ids_shadowed.l(64,64)
 Global Dim display_list_update_flag.l(64,64)
-Global Dim display_list_buffer_a.l(64,64)
-Global Dim display_list_buffer_b.l(64,64)
-Global Dim display_list_buffer_c.l(64,64)
 Global display_list_created.l = 0
 
 Global Dim kill_action_message.s(16)
@@ -70,27 +70,15 @@ Global Dim chat_message.s(16)
 Global Dim chat_message_time.l(16)
 Global Dim chat_message_color.l(16)
 
-Global map_texture_id.l = -1
-Global map_image.l = -1
+Global tent_count.l = 0
+Global Dim tent_x.l(16)
+Global Dim tent_y.l(16)
+Global Dim tent_z.l(16)
+Global Dim tent_team.l(16)
 
-Procedure map_createoverview(image)
-  StartDrawing(ImageOutput(image))
-  For z = 0 To 511
-    For x = 0 To 511
-      For y = 63 To 0 Step -1
-        If Not blocks(x,y,z) = $FFFFFFFF
-          Break
-	      EndIf
-	    Next
-      Plot(x,z,blocks(x,y,z))
-    Next
-  Next
-  StopDrawing()
-EndProcedure
-
-Procedure flagForUpdate(x,z)
-  blockx = Int(x/8.0)
-  blockz = Int(z/8.0)
+Procedure flagForUpdate(x.l,z.l)
+  Define blockx.l = Int(x/8.0)
+  Define blockz.l = Int(z/8.0)
   display_list_update_flag(blockx,blockz) = 1
   If blockx>0
     display_list_update_flag(blockx-1,blockz) = 1
@@ -117,7 +105,7 @@ Procedure.l getBlockSafe(x,y,z)
 EndProcedure
 
 Procedure setBlockSafe(x,y,z,color)
-  If x>-1 And y>-1 And z>-1 And x<512 And y<64 And z<512
+  If x>-1 And y>2 And z>-1 And x<512 And y<64 And z<512
     ;If y>heightmap(x,z)
     ;  heightmap(x,z) = y
     ;EndIf
@@ -125,6 +113,19 @@ Procedure setBlockSafe(x,y,z,color)
     ;map_createoverview(map_image)
     ;map_texture_id = loadTextureFromImage(map_image,0,0)
     flagForUpdate(x,z)
+  EndIf
+EndProcedure
+
+Procedure.l getLightLevel(x,y,z)
+  If x>-1 And y>-1 And z>-1 And x<512 And y<64 And z<512
+    ProcedureReturn lightlevels(x,y,z)
+  EndIf
+  ProcedureReturn 4
+EndProcedure
+
+Procedure setLightLevel(x,y,z,level)
+  If x>-1 And y>-1 And z>-1 And x<512 And y<64 And z<512
+    lightlevels(x,y,z) = level
   EndIf
 EndProcedure
 
@@ -137,6 +138,7 @@ Procedure.l isBlockSolid(color)
 EndProcedure
 
 Procedure.l blockAbove(x,y,z)
+  Define k
   For k=y To 63
 	  If Not blocks(x,k,z) = $FFFFFFFF
 	    ProcedureReturn k-y;return distance
@@ -146,6 +148,7 @@ Procedure.l blockAbove(x,y,z)
 EndProcedure
 
 Procedure.l blockAboveForShadow(x,y,z)
+  Define k
   For k=y To 63
 	  If Not getBlockSafe(x+(k-y)/2,k,z) = $FFFFFFFF
 	    ProcedureReturn k-y;return distance
@@ -160,7 +163,7 @@ Procedure.l clipBox(x.l, y.l, z.l)
 		ElseIf y < 0
 			ProcedureReturn 0
 		EndIf
-		sy.l = y
+		Define sy.l = y
 		If sy = 63
 			sy = 62
 		ElseIf sy >= 64
@@ -176,7 +179,7 @@ Procedure.l clipworld(x.l,y.l,z.l)
   If y < 0
     ProcedureReturn 0
   EndIf
-  sy.l = y
+  Define sy.l = y
   If sy = 63
       sy = 62
   ElseIf sy >= 63
@@ -191,28 +194,31 @@ Procedure.l clipBoxFloat(x.f, y.f, z.f)
   ProcedureReturn clipBox(Round(x,#PB_Round_Down),Round(y,#PB_Round_Down),Round(z,#PB_Round_Down))
 EndProcedure
 
-Global Dim block_visited_x.l(1024)
-Global Dim block_visited_y.l(1024)
-Global Dim block_visited_z.l(1024)
-Global block_visted_index = 0
+Global Dim block_visited_x.l(32768)
+Global Dim block_visited_y.l(32768)
+Global Dim block_visited_z.l(32768)
+Global block_visited_index.l = 0
 Global block_floating.l = 1
 
 Global Dim falling_block_color.l(2048)
 Global Dim falling_block_x.f(2048)
 Global Dim falling_block_y.f(2048)
 Global Dim falling_block_z.f(2048)
+Global Dim falling_block_v.f(2048)
 Global Dim falling_block_alive.l(2048)
 
+Define k
 For k=0 To 2048
   falling_block_alive(k) = 0
 Next
 
 Procedure clear_visited_list()
-  block_visted_index = 0
+  block_visited_index = 0
 EndProcedure
 
 Procedure.l block_visted(x.l,y.l,z.l)
-  For k=0 To block_visted_index-1
+  Define k
+  For k=0 To block_visited_index-1
     If block_visited_x(k) = x And block_visited_y(k) = y And block_visited_z(k) = z
       ProcedureReturn 1
     EndIf
@@ -221,11 +227,11 @@ Procedure.l block_visted(x.l,y.l,z.l)
 EndProcedure
 
 Procedure set_block_visted(x.l,y.l,z.l)
-  If block_visited_index < 1024-1
-    block_visited_x(block_visted_index) = x
-    block_visited_y(block_visted_index) = y
-    block_visited_z(block_visted_index) = z
-    block_visted_index + 1
+  If block_visited_index < 32768-1
+    block_visited_x(block_visited_index) = x
+    block_visited_y(block_visited_index) = y
+    block_visited_z(block_visited_index) = z
+    block_visited_index + 1
   EndIf
 EndProcedure
 
@@ -239,11 +245,13 @@ Procedure.l isFloating(x.l,y.l,z.l)
 EndProcedure
 
 Procedure addFallingBlock(x.f,y.f,z.f,color.l)
+  Define k
   For k=0 To 2048
     If falling_block_alive(k) = 0
       falling_block_x(k) = x
       falling_block_y(k) = y
       falling_block_z(k) = z
+      falling_block_v(k) = 0.0
       falling_block_color(k) = color
       falling_block_alive(k) = 1
       Break
@@ -252,12 +260,13 @@ Procedure addFallingBlock(x.f,y.f,z.f,color.l)
 EndProcedure
 
 Procedure updateFallingBlocks(dt.f)
-  ProcedureReturn
+  Define k
   For k=0 To 2048
     If falling_block_alive(k) = 1
       glColor4f(Red(falling_block_color(k)),Green(falling_block_color(k)),Blue(falling_block_color(k)),1.0)
       rendercubeat(falling_block_x(k),falling_block_y(k),falling_block_z(k),1.0,1.0,1.0)
-      falling_block_y(k) - dt
+      falling_block_v(k) + dt
+      falling_block_y(k) - falling_block_v(k)*dt*32.0
       If falling_block_y(k) <= 0.0
         falling_block_alive(k) = 0
       EndIf
@@ -266,8 +275,9 @@ Procedure updateFallingBlocks(dt.f)
 EndProcedure
 
 Procedure destoryFloatingStructure()
-  For k=0 To block_visted_index-1
-    ;addFallingBlock(block_visited_x(k),block_visited_y(k),block_visited_z(k),blocks(block_visited_x(k),block_visited_y(k),block_visited_z(k)))
+  Define k
+  For k=0 To block_visited_index-1
+    addFallingBlock(block_visited_x(k),block_visited_y(k),block_visited_z(k),blocks(block_visited_x(k),block_visited_y(k),block_visited_z(k)))
     setBlockSafe(block_visited_x(k),block_visited_y(k),block_visited_z(k),$FFFFFFFF)
   Next
 EndProcedure
@@ -302,7 +312,8 @@ Procedure map_unload()
 EndProcedure
 
 Procedure map_loadfromdata()
-  pointer = 0
+  Define pointer = 0
+  Define x,y,z
 For z = 0 To 511
   For x = 0 To 511
     For y = 0 To 63
@@ -310,28 +321,24 @@ For z = 0 To 511
 	  Next
 	  y = 0
 	  Repeat
-		  color = $FFFFFFFF
-		  i = 0
-		  number_4byte_chunks = PeekA(pointer+map_data+0)
-		  top_color_start = PeekA(pointer+map_data+1)
-		  top_color_end   = PeekA(pointer+map_data+2)
-		  bottom_color_start = 0
-		  bottom_color_end = 0
-		  len_top = 0
-		  len_bottom = 0
-
-; 			For i=y To top_color_start-1
-; 		    blocks(x,64-y,z) = 0
-; 		  Next
+		  Define color = $FFFFFFFF
+		  Define i = 0
+		  Define number_4byte_chunks = PeekA(pointer+map_data+0)
+		  Define top_color_start = PeekA(pointer+map_data+1)
+		  Define top_color_end   = PeekA(pointer+map_data+2)
+		  Define bottom_color_start = 0
+		  Define bottom_color_end = 0
+		  Define len_top = 0
+		  Define len_bottom = 0
 		  
-		  offset = 0
+		  Define offset = 0
 		  For y=top_color_start To top_color_end
 		    color = PeekA(pointer+map_data+6+offset)+PeekA(pointer+map_data+5+offset)*256+PeekA(pointer+map_data+4+offset)*65536
 		    blocks(x,64-y,z) = color
 		    offset + 4
 		  Next
 		  
-		  pointer_old = pointer
+		  Define pointer_old = pointer
 		            
 		  len_bottom = top_color_end - top_color_start + 1
 
@@ -352,10 +359,13 @@ For z = 0 To 511
 		    blocks(x,64-y,z) = color
 		    offset + 4
 		  Next
-		Until a = 1
+		  
+		  For y = top_color_end+1 To bottom_color_start-1
+		    blocks(x,64-y,z) = RGB(84,52,32)
+		  Next
+		ForEver
 		For y=0 To 64
 		 If Not blocks(x,y,z) = $FFFFFFFF
-		  ;heightmap(x,z) = y
 		  Break
 		 EndIf
 		 blocks(x,y,z) = RGB(84,52,32)
@@ -364,29 +374,32 @@ For z = 0 To 511
 Next
 FreeMemory(map_data)
 FreeMemory(map_data_compressed)
-map_image = CreateImage(#PB_Any,512,512)
-map_texture_id = -1
 display_list_created = 0
 map_loaded = 1
 EndProcedure
 
+Global Dim cube_line_x.l(64)
+Global Dim cube_line_y.l(64)
+Global Dim cube_line_z.l(64)
+Global Dim cube_line_color.l(64)
+
 Procedure.l cube_line_native(x1.l,y1.l,z1.l,x2.l,y2.l,z2.l, color.l)
-  vector_c_x.l = 0
-  vector_c_y.l = 0
-  vector_c_z.l = 0
-  vector_d_x.l = 0
-  vector_d_y.l = 0
-  vector_d_z.l = 0
-	ixi.l = 0
-	iyi.l = 0
-	izi.l = 0
-	dx.l = 0
-	dy.l = 0
-	dz.l = 0
-	dxi.l = 0
-	dyi.l = 0
-	dzi.l = 0
-	count.l = 0
+  Define vector_c_x.l = 0
+  Define vector_c_y.l = 0
+  Define vector_c_z.l = 0
+  Define vector_d_x.l = 0
+  Define vector_d_y.l = 0
+  Define vector_d_z.l = 0
+	Define ixi.l = 0
+	Define iyi.l = 0
+	Define izi.l = 0
+	Define dx.l = 0
+	Define dy.l = 0
+	Define dz.l = 0
+	Define dxi.l = 0
+	Define dyi.l = 0
+	Define dzi.l = 0
+	Define count.l = 0
 
 	;Note: positions MUST be rounded towards -inf
 	vector_c_x = x1
@@ -470,7 +483,10 @@ Procedure.l cube_line_native(x1.l,y1.l,z1.l,x2.l,y2.l,z2.l, color.l)
 	EndIf
 
 	Repeat
-		setBlockSafe(vector_c_x,64-vector_c_z,vector_c_y,color)
+	  cube_line_x(count) = vector_c_x
+	  cube_line_y(count) = 64-vector_c_z
+	  cube_line_z(count) = vector_c_y
+	  cube_line_color(count) = color
 		
 		count + 1
 		If count = 64
@@ -488,7 +504,7 @@ Procedure.l cube_line_native(x1.l,y1.l,z1.l,x2.l,y2.l,z2.l, color.l)
 			EndIf
 			dz + dzi
 		Else
-			If dx < dy
+		  If dx < dy
 				vector_c_x + ixi
 				If vector_c_x >= 512
 				  ProcedureReturn count
@@ -506,11 +522,16 @@ Procedure.l cube_line_native(x1.l,y1.l,z1.l,x2.l,y2.l,z2.l, color.l)
 EndProcedure
 
 Procedure.l cube_line(x1.l,y1.l,z1.l,x2.l,y2.l,z2.l,color.l)
-  ProcedureReturn cube_line_native(x1,z1,64-y1,x2,z2,64-y2,color)
+  Define count.l = cube_line_native(x1,z1,64-y1,x2,z2,64-y2,color)
+  Define k.l
+  For k=0 To count-1
+    setBlockSafe(cube_line_x(k),cube_line_y(k),cube_line_z(k),cube_line_color(k))
+  Next
+  ProcedureReturn count
 EndProcedure
 ; IDE Options = PureBasic 5.31 (Windows - x86)
-; CursorPosition = 223
-; FirstLine = 188
+; CursorPosition = 107
+; FirstLine = 93
 ; Folding = ----
 ; EnableUnicode
 ; EnableXP

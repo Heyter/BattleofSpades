@@ -61,6 +61,10 @@ char* getpacketdata(void) {
  return event.packet -> data;
 }
 
+int geteventdata(void) {
+ return event.data;
+}
+
 void destroypacket(void) {
   enet_packet_destroy(event.packet);
 }

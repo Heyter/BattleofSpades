@@ -5,15 +5,22 @@ Global connection_error = 0
 Global player_update_ongoing.l = 0
 Global first_team_join.l = 1
 
+Global game_mode.l = -1
+
 #CONNECTION_ERROR_DISCONNECT = 1
 #CONNECTION_ERROR_MAP_DATA_CORRUPTED = 100
-
 #NETWORK_PROCOTOL_VERSION = 3 ;(3: 0.75)(4: 0.76)
 
 #ENET_NONE = 0
 #ENET_CONNECT = 1
 #ENET_DISCONNECT = 2
 #ENET_RECIEVE = 3
+
+#GAMEMODE_CTF = 0
+#GAMEMODE_TC = 1
+
+Declare sendOSHandshakeReturn(a.l)
+Declare sendOSVersion()
 
 Procedure sendpacket(packetdata.l, len.l)
   CallCFunction(0,"sendpacketdata", packetdata, len)
@@ -22,11 +29,11 @@ EndProcedure
 Procedure networkThread(*unused)
   Repeat
     network_ping = CallCFunction(0,"getping")
-    event = CallCFunction(0,"clientcheckforevent",1000)
+    Define event = CallCFunction(0,"clientcheckforevent",1000)
   If event = #ENET_RECIEVE ;recieve
-    packet_pointer = CallCFunction(0,"getpacketdata")
-    packet_len = CallCFunction(0,"getpacketlen")
-    packet_id = PeekA(packet_pointer)
+    Define packet_pointer = CallCFunction(0,"getpacketdata")
+    Define packet_len = CallCFunction(0,"getpacketlen")
+    Define packet_id = PeekA(packet_pointer)
     ;Debug "PACKET: "+Str(packet_id)
     If packet_id = 0 ;position update
        player_x(own_player_id) = PeekF(packet_pointer+1)
@@ -40,6 +47,7 @@ Procedure networkThread(*unused)
       player_update_ongoing = 1
       player_old_position_time = player_new_position_time
       player_new_position_time = ElapsedMilliseconds()
+      Define k
       For k=0 To 31
         If Not k = own_player_id
           player_old_x(k) = player_x(k)
@@ -54,26 +62,18 @@ Procedure networkThread(*unused)
           player_angle_x(k) = PeekF(packet_pointer+13+k*24)
           player_angle_z(k) = PeekF(packet_pointer+17+k*24)
           player_angle_y(k) = -PeekF(packet_pointer+21+k*24)
-          If player_y(k) > 64.0
-            player_y(k) = 64.0
-            player_old_y(k) = 64.0
-          EndIf
-          If teamlist(k) = -1
-            player_y(k) = 64.1
-            player_old_y(k) = 64.1
-          EndIf
         EndIf
       Next
       player_update_ongoing = 0
     EndIf
     If packet_id = 3 ;input data
-      player_id = PeekA(packet_pointer+1)
-      key_states = PeekA(packet_pointer+2)
+      Define player_id = PeekA(packet_pointer+1)
+      Define key_states = PeekA(packet_pointer+2)
       player_keystates2(player_id) = key_states
     EndIf
     If packet_id = 4 ;weapon input
-      player_id = PeekA(packet_pointer+1)
-      type = PeekA(packet_pointer+2)
+      Define player_id = PeekA(packet_pointer+1)
+      Define type = PeekA(packet_pointer+2)
       If type = 0
         player_left_button(player_id) = 0
         player_right_button(player_id) = 0
@@ -92,11 +92,11 @@ Procedure networkThread(*unused)
       EndIf
     EndIf
     If packet_id = 5 ;set hp
-      hp = PeekA(packet_pointer+1)
-      type = PeekA(packet_pointer+2)
-      x_pos = PeekF(packet_pointer+3)
-      y_pos = PeekF(packet_pointer+7)
-      z_pos = PeekF(packet_pointer+11)
+      Define hp = PeekA(packet_pointer+1)
+      Define type = PeekA(packet_pointer+2)
+      Define x_pos = PeekF(packet_pointer+3)
+      Define y_pos = PeekF(packet_pointer+7)
+      Define z_pos = PeekF(packet_pointer+11)
       own_hp = hp
       last_damage_source_time = ElapsedMilliseconds()
       last_damage_source_type = type
@@ -110,40 +110,40 @@ Procedure networkThread(*unused)
       EndIf
     EndIf
     If packet_id = 6 ;spawn grenade
-      player_id = PeekA(packet_pointer+1)
-      fuse.f = PeekF(packet_pointer+2)
-      pos_x.f = PeekF(packet_pointer+6)
-      pos_z.f = PeekF(packet_pointer+10)
-      pos_y.f = PeekF(packet_pointer+14)
-      v_x.f   = PeekF(packet_pointer+18)
-      v_z.f   = PeekF(packet_pointer+22)
-      v_y.f   = PeekF(packet_pointer+26)
+      Define player_id = PeekA(packet_pointer+1) ;not really needed
+      Define fuse.f = PeekF(packet_pointer+2)
+      Define pos_x.f = PeekF(packet_pointer+6)
+      Define pos_z.f = PeekF(packet_pointer+10)
+      Define pos_y.f = PeekF(packet_pointer+14)
+      Define v_x.f   = PeekF(packet_pointer+18)
+      Define v_z.f   = PeekF(packet_pointer+22)
+      Define v_y.f   = PeekF(packet_pointer+26)
       spawnGrenade(pos_x,pos_y,pos_z,v_x,v_y,v_z,fuse)
     EndIf
     If packet_id = 7 ;set tool
-      player_id = PeekA(packet_pointer+1)
-      tool = PeekA(packet_pointer+2)
+      Define player_id = PeekA(packet_pointer+1)
+      Define tool = PeekA(packet_pointer+2)
       player_item(player_id) = tool
     EndIf
     If packet_id = 8 ;set block color
-      player_id = PeekA(packet_pointer+1)
-      block_blue = PeekA(packet_pointer+2)
-      block_green = PeekA(packet_pointer+3)
-      block_red = PeekA(packet_pointer+4)
+      Define player_id = PeekA(packet_pointer+1)
+      Define block_blue = PeekA(packet_pointer+2)
+      Define block_green = PeekA(packet_pointer+3)
+      Define block_red = PeekA(packet_pointer+4)
       player_block_color_red(player_id) = block_red
       player_block_color_green(player_id) = block_green
       player_block_color_blue(player_id) = block_blue
     EndIf
     If packet_id = 9 ;existing player
-      player_id = PeekA(packet_pointer+1)
-      team = PeekB(packet_pointer+2)
-      weapon = PeekA(packet_pointer+3)
-      held_item = PeekA(packet_pointer+4)
-      kills = PeekL(packet_pointer+5)
-      block_blue = PeekA(packet_pointer+9)
-      block_green = PeekA(packet_pointer+10)
-      block_red = PeekA(packet_pointer+11)
-      namelist(player_id) = PeekS(packet_pointer+12,packet_len-12,#PB_UTF8)
+      Define player_id = PeekA(packet_pointer+1)
+      Define team = PeekB(packet_pointer+2)
+      Define weapon = PeekA(packet_pointer+3)
+      Define held_item = PeekA(packet_pointer+4)
+      Define kills = PeekL(packet_pointer+5) ;short would fit better here
+      Define block_blue = PeekA(packet_pointer+9)
+      Define block_green = PeekA(packet_pointer+10)
+      Define block_red = PeekA(packet_pointer+11)
+      namelist(player_id) = PeekS(packet_pointer+12,16,#PB_UTF8)
       teamlist(player_id) = team
       weaponlist(player_id) = weapon
       player_item(player_id) = held_item
@@ -159,51 +159,61 @@ Procedure networkThread(*unused)
 	    player_airborne(player_id) = 0
 	    player_moveDistance(player_id) = 0.0
 	    player_moveSteps(player_id) = 0
+	    player_connected(player_id) = 1
 	    If player_id = own_player_id
 	      own_hp = 100
 	    EndIf
     EndIf
     If packet_id = 10 ;short player data
-      Debug "short player data!"
+      MessageRequester("lel","")
+      Debug "Recieved unexpected short player data!"
     EndIf
     If packet_id = 11 ;move object
-      id = PeekA(packet_pointer+1)
-      team = PeekA(packet_pointer+2)
-      pos_x.f = PeekF(packet_pointer+3)
-      pos_z.f = PeekF(packet_pointer+7)
-      pos_y.f = 64.0-PeekF(packet_pointer+11)
-      If id = 0 ;blue intel
-        team_1_intel_player = -1
-        team_1_intel_x = pos_x
-        team_1_intel_y = pos_y
-        team_1_intel_z = pos_z
+      Define id = PeekA(packet_pointer+1)
+      Define team = PeekA(packet_pointer+2)
+      Define pos_x.f = PeekF(packet_pointer+3)
+      Define pos_z.f = PeekF(packet_pointer+7)
+      Define pos_y.f = 64.0-PeekF(packet_pointer+11)
+      If game_mode = #GAMEMODE_CTF
+        If id = 0 ;blue intel
+          team_1_intel_player = -1
+          team_1_intel_x = pos_x
+          team_1_intel_y = pos_y
+          team_1_intel_z = pos_z
+        EndIf
+        If id = 1 ;green intel
+          team_2_intel_player = -1
+          team_2_intel_x = pos_x
+          team_2_intel_y = pos_y
+          team_2_intel_z = pos_z
+        EndIf
+        If id = 2 ;blue base
+          team_1_base_x = pos_x
+          team_1_base_y = pos_y
+          team_1_base_z = pos_z
+        EndIf
+        If id = 3 ;green base
+          team_2_base_x = pos_x
+          team_2_base_y = pos_y
+          team_2_base_z = pos_z
+        EndIf
       EndIf
-      If id = 1 ;green intel
-        team_2_intel_player = -1
-        team_2_intel_x = pos_x
-        team_2_intel_y = pos_y
-        team_2_intel_z = pos_z
-      EndIf
-      If id = 2 ;blue base
-        team_1_base_x = pos_x
-        team_1_base_y = pos_y
-        team_1_base_z = pos_z
-      EndIf
-      If id = 3 ;green base
-        team_2_base_x = pos_x
-        team_2_base_y = pos_y
-        team_2_base_z = pos_z
+      If game_mode = #GAMEMODE_TC And id>-1 And id<=tent_count
+        tent_x(id) = pos_x
+        tent_y(id) = pos_y
+        tent_z(id) = pos_z
+        tent_team(id) = team
       EndIf
     EndIf
     If packet_id = 12 ;create player
-      player_id = PeekA(packet_pointer+1)
-      weapon = PeekA(packet_pointer+2)
-      team = PeekB(packet_pointer+3)
-      player_pos_x.f = PeekF(packet_pointer+4)
-      player_pos_z.f = PeekF(packet_pointer+8)
-      player_pos_y.f = 64.0-PeekF(packet_pointer+12)+0.5
-      namelist(player_id) = PeekS(packet_pointer+16,packet_len-16,#PB_UTF8)
-      If player_y(player_id) = 64.0 And Not player_pos_y = 64.0
+      Define player_id = PeekA(packet_pointer+1)
+      Define weapon = PeekA(packet_pointer+2)
+      Define team = PeekB(packet_pointer+3)
+      Define player_pos_x.f = PeekF(packet_pointer+4)
+      Define player_pos_z.f = PeekF(packet_pointer+8)
+      Define player_pos_y.f = 64.0-PeekF(packet_pointer+12)+0.5
+      namelist(player_id) = PeekS(packet_pointer+16,16,#PB_UTF8)
+      If player_connected(player_id) = 0
         ;new player, show join message
         For k=0 To 14
           chat_message(k) = chat_message(k+1)
@@ -231,21 +241,12 @@ Procedure networkThread(*unused)
 	    player_airborne(player_id) = 0
 	    player_moveDistance(player_id) = 0.0
 	    player_moveSteps(player_id) = 0
+	    player_connected(player_id) = 1
       If player_id = own_player_id
         own_hp = 100
         own_team = team
         own_weapon = weapon
         own_item = 2
-        
-        own_old_position_time = own_new_position_time
-        own_new_position_time = ElapsedMilliseconds()
-        own_old_position_x = player_pos_x
-        own_old_position_y = player_pos_y
-        own_old_position_z = player_pos_z
-        
-        own_position_x = player_pos_x
-        own_position_y = player_pos_y
-        own_position_z = player_pos_z
         
         own_ammo = mag_size(own_weapon)
         own_max_ammo = max_ammo(own_weapon)
@@ -254,13 +255,17 @@ Procedure networkThread(*unused)
       EndIf
     EndIf
     If packet_id = 13 ;block update
-      player_id = PeekA(packet_pointer+1)
-      action = PeekA(packet_pointer+2)
-      x_pos = PeekL(packet_pointer+3)
-      z_pos = PeekL(packet_pointer+7)
-      y_pos = 64-PeekL(packet_pointer+11)
+      Define player_id = PeekA(packet_pointer+1)
+      Define action = PeekA(packet_pointer+2)
+      Define x_pos = PeekL(packet_pointer+3)
+      Define z_pos = PeekL(packet_pointer+7)
+      Define y_pos = 64-PeekL(packet_pointer+11)
       If action > 0 ;destroy
+        Define old_color.l = getBlockSafe(x_pos,y_pos,z_pos)
         setBlockSafe(x_pos,y_pos,z_pos,$FFFFFFFF)
+        If action = 1
+          spawnParticleCloud(64,x_pos+0.5,y_pos+0.5,z_pos+0.5,0.15,0.0625,0.2,old_color)
+        EndIf
         If action = 1 Or action = 2
           createSoundSource(20,x_pos+0.5,y_pos+0.5,z_pos+0.5,16.0) ;normal dig sound
           If action = 2 ;big dig
@@ -269,6 +274,7 @@ Procedure networkThread(*unused)
           EndIf
         EndIf
         If action = 3
+          Define x,y,z
           For y = y_pos-1 To y_pos+1
             For z = z_pos-1 To z_pos+1
               For x = x_pos-1 To x_pos+1
@@ -277,22 +283,22 @@ Procedure networkThread(*unused)
             Next
           Next
         EndIf
-        If isBlockSolid(getBlockSafe(x,y+1,z)) And isFloating(x_pos,y_pos+1,z_pos)
+        If isBlockSolid(getBlockSafe(x_pos,y_pos+1,z_pos)) And isFloating(x_pos,y_pos+1,z_pos)
           destoryFloatingStructure()
         EndIf
-        If isBlockSolid(getBlockSafe(x+1,y,z)) And isFloating(x_pos+1,y_pos,z_pos)
+        If isBlockSolid(getBlockSafe(x_pos+1,y_pos,z_pos)) And isFloating(x_pos+1,y_pos,z_pos)
           destoryFloatingStructure()
         EndIf
-         If isBlockSolid(getBlockSafe(x-1,y,z)) And isFloating(x_pos-1,y_pos,z_pos)
+         If isBlockSolid(getBlockSafe(x_pos-1,y_pos,z_pos)) And isFloating(x_pos-1,y_pos,z_pos)
           destoryFloatingStructure()
         EndIf
-         If isBlockSolid(getBlockSafe(x,y,z+1)) And isFloating(x_pos,y_pos,z_pos+1)
+         If isBlockSolid(getBlockSafe(x_pos,y_pos,z_pos+1)) And isFloating(x_pos,y_pos,z_pos+1)
           destoryFloatingStructure()
         EndIf
-         If isBlockSolid(getBlockSafe(x,y,z-1)) And isFloating(x_pos,y_pos,z_pos-1)
+         If isBlockSolid(getBlockSafe(x_pos,y_pos,z_pos-1)) And isFloating(x_pos,y_pos,z_pos-1)
           destoryFloatingStructure()
         EndIf
-         If isBlockSolid(getBlockSafe(x,y-1,z)) And isFloating(x_pos,y_pos-1,z_pos)
+         If isBlockSolid(getBlockSafe(x_pos,y_pos-1,z_pos)) And isFloating(x_pos,y_pos-1,z_pos)
           destoryFloatingStructure()
         EndIf
       EndIf
@@ -303,17 +309,17 @@ Procedure networkThread(*unused)
       ;map_createoverview(1024)
     EndIf
     If packet_id = 14 ;block line
-      player_id = PeekA(packet_pointer+1)
-      x_start = PeekL(packet_pointer+2)
-      z_start = PeekL(packet_pointer+6)
-      y_start = 64-PeekL(packet_pointer+10)
-      x_end = PeekL(packet_pointer+14)
-      z_end = PeekL(packet_pointer+18)
-      y_end = 64-PeekL(packet_pointer+22)
+      Define player_id = PeekA(packet_pointer+1)
+      Define x_start = PeekL(packet_pointer+2)
+      Define z_start = PeekL(packet_pointer+6)
+      Define y_start = 64-PeekL(packet_pointer+10)
+      Define x_end = PeekL(packet_pointer+14)
+      Define z_end = PeekL(packet_pointer+18)
+      Define y_end = 64-PeekL(packet_pointer+22)
       cube_line(x_start,y_start,z_start,x_end,y_end,z_end,RGB(player_block_color_red(player_id),player_block_color_green(player_id),player_block_color_blue(player_id)))
     EndIf
     If packet_id = 15 ;state data (map transfer complete)
-      decompression_result =  zlib_inflateInit2(map_data, @map_data_size, map_data_compressed, map_data_compressed_index)
+      Define decompression_result =  zlib_inflateInit2(map_data, @map_data_size, map_data_compressed, map_data_compressed_index)
       If decompression_result < 0
         network_connected = 0
         network_ping = 0
@@ -340,13 +346,15 @@ Procedure networkThread(*unused)
       team_1_name.s = PeekS(packet_pointer+11,10,#PB_UTF8)
       team_2_name.s = PeekS(packet_pointer+21,10,#PB_UTF8)
       
-      gamemode_id = PeekA(packet_pointer+31)
+      Define gamemode_id = PeekA(packet_pointer+31)
       
-      If gamemode_id = 0
+      game_mode = gamemode_id
+      
+      If gamemode_id = #GAMEMODE_CTF
         team_1_score = PeekA(packet_pointer+32)
         team_2_score = PeekA(packet_pointer+33)
         score_max = PeekA(packet_pointer+34)
-        intel_flag = PeekA(packet_pointer+35)
+        Define intel_flag = PeekA(packet_pointer+35)
         If intel_flag = 0
           team_1_intel_player = -1
           team_1_intel_x = PeekF(packet_pointer+36)
@@ -382,6 +390,19 @@ Procedure networkThread(*unused)
         team_2_base_z = PeekF(packet_pointer+76)
         team_2_base_y = 64.0-PeekF(packet_pointer+80)
       EndIf
+      If gamemode_id = #GAMEMODE_TC
+        tent_count = PeekA(packet_pointer+32)
+        Define k
+        For k=0 To tent_count-1
+          tent_x(k) = PeekF(packet_pointer+33+k*13)
+          tent_z(k) = PeekF(packet_pointer+37+k*13)
+          tent_y(k) = 64.0-PeekF(packet_pointer+41+k*13)
+          tent_team(k) = PeekA(packet_pointer+42+k*13)
+        Next
+      EndIf
+      If Not gamemode_id = #GAMEMODE_CTF And Not gamemode_id = #GAMEMODE_TC
+        MessageRequester("Network thread","Unsupported gamemode "+Str(gamemode_id)+" :(")
+      EndIf
       
       For k=0 To 31
         namelist(player_id) = ""
@@ -407,6 +428,7 @@ Procedure networkThread(*unused)
         player_old_angle_y(player_id) = 0.0
         player_old_angle_z(player_id) = 0.0
         player_ammo(player_id) = 0
+        player_connected(player_id) = 0
       Next
       
       own_team = -1
@@ -422,18 +444,18 @@ Procedure networkThread(*unused)
       Debug "map complete!"
     EndIf
     If packet_id = 16 ;kill action
-      killed_player_id = PeekA(packet_pointer+1)
-      killer_id = PeekA(packet_pointer+2)
-      type = PeekA(packet_pointer+3)
-      seconds = PeekA(packet_pointer+4)
+      Define killed_player_id = PeekA(packet_pointer+1)
+      Define killer_id = PeekA(packet_pointer+2)
+      Define type = PeekA(packet_pointer+3)
+      Define seconds = PeekA(packet_pointer+4)-1
       player_secounds_till_respawn(killed_player_id) = seconds
       player_dead(killed_player_id) = 1
       player_death_time(killed_player_id) = ElapsedMilliseconds()
       player_deaths(killed_player_id) + 1
       player_keystates2(killed_player_id) = 0
-      free_index = 0
-      time = 0
-      a = ElapsedMilliseconds()
+      Define free_index = 0
+      Define time = 0
+      Define a = ElapsedMilliseconds()
       For k = 0 To 15
         If a-kill_action_time(k)>time
           free_index = k
@@ -469,8 +491,8 @@ Procedure networkThread(*unused)
       EndIf
     EndIf
     If packet_id = 17 ;chat message
-      player_id = PeekA(packet_pointer+1)
-      chat_type = PeekA(packet_pointer+2)
+      Define player_id = PeekA(packet_pointer+1)
+      Define chat_type = PeekA(packet_pointer+2)
       If player_id < 0 Or player_id > 32
         chat_type = 2
       EndIf
@@ -480,7 +502,7 @@ Procedure networkThread(*unused)
         chat_message_time(k) = chat_message_time(k+1)
       Next
       If chat_type < 2
-        teamname$ = "Spectator"
+        Define teamname$ = "Spectator"
         If teamlist(player_id) = 0
           teamname$ = team_1_name
         EndIf
@@ -552,6 +574,7 @@ Procedure networkThread(*unused)
       player_old_angle_y(player_id) = 0.0
       player_old_angle_z(player_id) = 0.0
       player_ammo(player_id) = 0
+      player_connected(player_id) = 0
     EndIf
     If packet_id = 21 ;territory capture
       
@@ -559,9 +582,9 @@ Procedure networkThread(*unused)
     If packet_id = 22 ;progressbar
       
     EndIf
-    If packet_id = 23 ;intel capture
-      player_id = PeekA(packet_pointer+1)
-      winning = PeekA(packet_pointer+2)
+    If packet_id = 23 And game_mode = #GAMEMODE_CTF ;intel capture
+      Define player_id = PeekA(packet_pointer+1)
+      Define winning = PeekA(packet_pointer+2)
       player_kills(player_id) + 10
       If teamlist(player_id) = 0
         team_1_score + 1
@@ -573,7 +596,7 @@ Procedure networkThread(*unused)
         createSoundSourceAtCamera(25)
       EndIf
     EndIf
-    If packet_id = 24 ;intel pickup
+    If packet_id = 24 And game_mode = #GAMEMODE_CTF ;intel pickup
       player_id = PeekA(packet_pointer+1)
       If teamlist(player_id) = 0
         team_2_intel_player = player_id
@@ -582,11 +605,11 @@ Procedure networkThread(*unused)
         team_1_intel_player = player_id
       EndIf
     EndIf
-    If packet_id = 25 ;intel drop
-      player_id = PeekA(packet_pointer+1)
-      intel_x.f = PeekF(packet_pointer+2)
-      intel_z.f = PeekF(packet_pointer+6)
-      intel_y.f = 64.0-PeekF(packet_pointer+10)
+    If packet_id = 25 And game_mode = #GAMEMODE_CTF ;intel drop
+      Define player_id = PeekA(packet_pointer+1)
+      Define intel_x.f = PeekF(packet_pointer+2)
+      Define intel_z.f = PeekF(packet_pointer+6)
+      Define intel_y.f = 64.0-PeekF(packet_pointer+10)
       If teamlist(player_id) = 0
         team_2_intel_player = -1
         team_2_intel_x = intel_x
@@ -600,14 +623,12 @@ Procedure networkThread(*unused)
         team_1_intel_z = intel_z
       EndIf
     EndIf
-    If packet_id = 26 ;player 
+    If packet_id = 26 ;player restock
       player_id = PeekA(packet_pointer+1)
       player_ammo(player_id) = mag_size(weaponlist(player_id))
-      If player_id = own_player_id
-        own_ammo = mag_size(own_weapon)
-        own_max_ammo = max_ammo(own_weapon)
-        own_hp = 100
-      EndIf
+      own_ammo = mag_size(own_weapon)
+      own_max_ammo = max_ammo(own_weapon)
+      own_hp = 100
     EndIf
     If packet_id = 27 ;set fog color
       map_fog_blue = PeekA(packet_pointer+2)
@@ -615,9 +636,9 @@ Procedure networkThread(*unused)
       map_fog_red = PeekA(packet_pointer+4)
     EndIf
     If packet_id = 28 ;weapon reload
-      player_id = PeekA(packet_pointer+1)
-      clip_ammo = PeekA(packet_pointer+2)
-      reserve_ammo = PeekA(packet_pointer+3)
+      Define player_id = PeekA(packet_pointer+1)
+      Define clip_ammo = PeekA(packet_pointer+2)
+      Define reserve_ammo = PeekA(packet_pointer+3)
       player_ammo(player_id) = clip_ammo
       If Not player_id = own_player_id
         createSoundSource(12+weaponlist(player_id),getPlayerX(player_id),getPlayerY(player_id),getPlayerZ(player_id),16.0)
@@ -631,6 +652,37 @@ Procedure networkThread(*unused)
       weapon = PeekA(packet_pointer+2)
       weaponlist(player_id) = weapon
     EndIf
+    
+    If ReadPreferenceInteger("imitate_openspades",0) = 1
+      If packet_id = 31 ;handshake init
+        sendOSHandshakeReturn(PeekL(packet_pointer+1))
+      EndIf
+      If packet_id = 33 ;version get
+        sendOSVersion()
+      EndIf
+    EndIf
+    
+    
+    If packet_id = 40 ;FUTURE: LOAD KV6 FROM URL
+      Define kv6_id = PeekA(packet_pointer+1)
+      Define url$ = PeekS(packet_pointer+2,packet_len-2,#PB_UTF8)
+    EndIf
+    If packet_id = 41 ;FUTURE: ASSIGN KV6 TO OBJECT
+      Define object_id = PeekA(packet_pointer+1)
+      Define kv6_id = PeekA(packet_pointer+2)
+    EndIf
+    If packet_id = 42 ;FUTURE: ROTATE OBJECT
+      Define object_id = PeekA(packet_pointer+1)
+      Define rot_x.f = PeekF(packet_pointer+2)
+      Define rot_z.f = PeekF(packet_pointer+6)
+      Define rot_y.f = 64.0-PeekF(packet_pointer+10)
+    EndIf
+    If packet_id = 43 ;FUTURE: CREATE OBJECT
+      Define object_id = PeekA(packet_pointer+1)
+    EndIf
+    If packet_id = 44 ;FUTURE: DESTORY OBJECT
+      Define object_id = PeekA(packet_pointer+1)
+    EndIf
     CallCFunction(0,"destroypacket")
   EndIf
   If event = #ENET_DISCONNECT ;disconnect
@@ -639,23 +691,43 @@ Procedure networkThread(*unused)
     network_connected = 0
     network_ping = 0
     network_thread_id = 0
-    connection_error = #CONNECTION_ERROR_DISCONNECT
+    connection_error = #CONNECTION_ERROR_DISCONNECT+CallCFunction(0,"geteventdata")
     Break
   EndIf
   ForEver
 EndProcedure
 
+Procedure sendOSHandshakeReturn(a.l)
+  Define packetdata.l = AllocateMemory(5)
+  PokeA(packetdata,32)
+  PokeL(packetdata+1,a)
+  sendpacket(packetdata,5)
+EndProcedure
+
+Procedure sendOSVersion()
+  Define packetdata.l = AllocateMemory(16)
+  PokeA(packetdata,34)
+  PokeA(packetdata+1,'o')
+  PokeA(packetdata+2,0)
+  PokeA(packetdata+3,0)
+  PokeA(packetdata+4,12)
+  PokeS(packetdata+5,"Windows XP",Len("Windows XP"),#PB_UTF8)
+  PokeA(packetdata+15,0)
+  sendpacket(packetdata,16)
+EndProcedure
+
+
 Procedure sendGrenade(x.f, y.f, z.f, defuse_time.l)
-  packetdata.l = AllocateMemory(30)
+  Define packetdata.l = AllocateMemory(30)
   PokeA(packetdata,6) ;spawn grenade
   PokeA(packetdata+1,own_player_id)
   PokeF(packetdata+2,defuse_time)
   PokeF(packetdata+6,x)
   PokeF(packetdata+10,z)
   PokeF(packetdata+14,64.0-y)
-  vector_x.f = Sin(camera_rot_x)*Sin(camera_rot_y)
-  vector_y.f = Cos(camera_rot_y)
-  vector_z.f = Cos(camera_rot_x)*Sin(camera_rot_y)
+  Define vector_x.f = Sin(camera_rot_x)*Sin(camera_rot_y)
+  Define vector_y.f = Cos(camera_rot_y)
+  Define vector_z.f = Cos(camera_rot_x)*Sin(camera_rot_y)
   PokeF(packetdata+18,vector_x)
   PokeF(packetdata+22,vector_z)
   PokeF(packetdata+26,-vector_y)
@@ -663,7 +735,7 @@ Procedure sendGrenade(x.f, y.f, z.f, defuse_time.l)
 EndProcedure
 
 Procedure sendTool(tool.l)
-  packetdata.l = AllocateMemory(3)
+  Define packetdata.l = AllocateMemory(3)
   PokeA(packetdata,7) ;set tool
   PokeA(packetdata+1,own_player_id)
   PokeA(packetdata+2,tool)
@@ -671,7 +743,7 @@ Procedure sendTool(tool.l)
 EndProcedure
 
 Procedure sendChat(team.l,message$)
-  packetdata.l = AllocateMemory(Len(message$)+3)
+  Define packetdata.l = AllocateMemory(Len(message$)+3)
   PokeA(packetdata,17) ;chat message
   PokeA(packetdata+1,own_player_id)
   PokeA(packetdata+2,team)
@@ -683,7 +755,7 @@ Global last_position_update.l
 Procedure positiondata(x_pos.f,y_pos.f,z_pos.f)
    If ElapsedMilliseconds()-last_position_update>1000
      
-     packetdata.l = AllocateMemory(13)
+     Define packetdata.l = AllocateMemory(13)
      PokeA(packetdata,0) ;position data
      PokeF(packetdata+1,x_pos)
      PokeF(packetdata+5,z_pos)
@@ -696,7 +768,7 @@ EndProcedure
 
 Global last_key_states.l
 Procedure inputdata(forward.l,backward.l,left.l,right.l,shift.l,ctrl.l,space.l)
-  key_states.l = 0
+  Define key_states.l = 0
   If forward = 1
     key_states + 1
   EndIf
@@ -719,7 +791,7 @@ Procedure inputdata(forward.l,backward.l,left.l,right.l,shift.l,ctrl.l,space.l)
     key_states + 128
   EndIf
   If Not key_states = last_key_states
-    packetdata.l = AllocateMemory(3)
+    Define packetdata.l = AllocateMemory(3)
     PokeA(packetdata,3) ;input data
     PokeA(packetdata+1,own_player_id)
     PokeA(packetdata+2,key_states)
@@ -730,7 +802,7 @@ EndProcedure
 
 Global last_weapon_input.l
 Procedure weaponinput(left.l,right.l)
-  weapon_input.l = 0
+  Define weapon_input.l = 0
   If left = 1
     weapon_input + 1
   EndIf
@@ -738,7 +810,7 @@ Procedure weaponinput(left.l,right.l)
     weapon_input + 2
   EndIf
   If Not weapon_input = last_weapon_input
-    packetdata.l = AllocateMemory(3)
+    Define packetdata.l = AllocateMemory(3)
     PokeA(packetdata,4) ;weapon input
     PokeA(packetdata+1,own_player_id)
     PokeA(packetdata+2,weapon_input)
@@ -750,7 +822,7 @@ EndProcedure
 Global last_orientation_update.l
 Procedure orientationdata(x_o.f,y_o.f,z_o.f)
   If ElapsedMilliseconds()-last_orientation_update>100
-    packetdata.l = AllocateMemory(13)
+    Define packetdata.l = AllocateMemory(13)
     PokeA(packetdata,1) ;orientation data
     PokeF(packetdata+1,x_o)
     PokeF(packetdata+5,z_o)
@@ -761,8 +833,8 @@ Procedure orientationdata(x_o.f,y_o.f,z_o.f)
 EndProcedure
 
 Procedure sendReloadWeaponPacket()
-  packetdata.l = AllocateMemory(4)
-  PokeA(packetdata,28)               ;weapon reload
+  Define packetdata.l = AllocateMemory(4)
+  PokeA(packetdata,28)              ;weapon reload
   PokeA(packetdata+1,own_player_id) ;own player id
   PokeA(packetdata+2,0)             ;clip ammo
   PokeA(packetdata+3,0)             ;reserve ammo
@@ -770,7 +842,7 @@ Procedure sendReloadWeaponPacket()
 EndProcedure
 
 Procedure sendHitPacket(id.l,type.l)
-  packetdata.l = AllocateMemory(3)
+  Define packetdata.l = AllocateMemory(3)
   PokeA(packetdata,5)        ;hit packet
   PokeA(packetdata+1,id)     ;player id
   PokeA(packetdata+2,type)   ;hit type
@@ -778,7 +850,7 @@ Procedure sendHitPacket(id.l,type.l)
 EndProcedure
 
 Procedure sendBlockActionPacket(action.l, x.l, y.l, z.l)
-  packetdata.l = AllocateMemory(15)
+  Define packetdata.l = AllocateMemory(15)
   PokeA(packetdata,13)               ;block action
   PokeA(packetdata+1,own_player_id)  ;own player id
   PokeA(packetdata+2,action)         ;action type
@@ -790,7 +862,7 @@ EndProcedure
 
 Procedure changeweapon(weapon.l)
   own_weapon = weapon
-  packetdata.l = AllocateMemory(3)
+  Define packetdata.l = AllocateMemory(3)
   PokeA(packetdata,30) ;change weapon
   PokeA(packetdata+1,own_player_id) ;own player id
   PokeA(packetdata+2,weapon) ;new weapon
@@ -799,7 +871,7 @@ EndProcedure
 
 Procedure joingame(team.l)
   If first_team_join = 1
-    packetdata.l = AllocateMemory(28)
+    Define packetdata.l = AllocateMemory(28)
     PokeA(packetdata,9) ;existing player
     PokeA(packetdata+1,own_player_id) ;own player_id
     PokeB(packetdata+2,team) ;team
@@ -861,9 +933,9 @@ Procedure.l connect(ip$, port)
     CallCFunction(0,"destroyclient")
     ProcedureReturn 1
   EndIf
-  ip_pointer = AllocateMemory(Len(ip$)+1)
+  Define ip_pointer = AllocateMemory(Len(ip$)+1)
   PokeS(ip_pointer,ip$,Len(ip$),#PB_UTF8)
-  client_connect_l = CallCFunction(0,"clientconnect",ip_pointer,port,#NETWORK_PROCOTOL_VERSION)
+  Define client_connect_l = CallCFunction(0,"clientconnect",ip_pointer,port,#NETWORK_PROCOTOL_VERSION)
   If client_connect_l = 5000
     ProcedureReturn 2
   EndIf
@@ -879,9 +951,9 @@ Procedure.l enet_ping()
   ProcedureReturn network_ping
 EndProcedure
 ; IDE Options = PureBasic 5.31 (Windows - x86)
-; CursorPosition = 656
-; FirstLine = 17
-; Folding = E---
+; CursorPosition = 449
+; FirstLine = 442
+; Folding = +-P7
 ; EnableUnicode
 ; EnableXP
 ; UseMainFile = main.pb

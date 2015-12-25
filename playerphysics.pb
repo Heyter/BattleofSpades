@@ -16,15 +16,6 @@ Procedure.l IsToolWeapon(id)
   ProcedureReturn 0
 EndProcedure
 
-#KEY_UP = 1
-#KEY_DOWN = 2
-#KEY_LEFT = 4
-#KEY_RIGHT = 8
-#KEY_JUMP = 16
-#KEY_CROUCH = 32
-#KEY_SNEAK = 64
-#KEY_SPRINT = 128
-
 Procedure.f Max(a.f,b.f)
    If a>b
       ProcedureReturn a
@@ -34,19 +25,20 @@ Procedure.f Max(a.f,b.f)
  
  Procedure repositionPlayer(id.l)
 	  player_eye_y(id) = player_y(id)
-		f5.f = player_lastClimbTime(id) - getTime()
-		If f > -0.25
-			player_eye_y(id) + (f5 + 0.25) / 0.25
-		EndIf
+	  Define f5.f = player_lastClimbTime(id) - getTime()
+	  ;TODO: ?
+		;If f > -0.25
+;			player_eye_y(id) + (f5 + 0.25) / 0.25
+		;EndIf
 EndProcedure
  
  Procedure boxClipMove(fsynctics.f, id.l)
-		f5.f = fsynctics * 32.0
-		nx.f = f5 * player_velocity_x(id) + player_x(id)
-		ny.f = f5 * player_velocity_z(id) + player_z(id)
+		Define f5.f = fsynctics * 32.0
+		Define nx.f = f5 * player_velocity_x(id) + player_x(id)
+		Define ny.f = f5 * player_velocity_z(id) + player_z(id)
 		player_climb(id) = 0
-		offset.f = 0.0
-		m.f = 0.0
+		Define offset.f = 0.0
+		Define m.f = 0.0
 		If player_keystates2(id) & #KEY_CROUCH
 			offset = 0.45
 			m = 0.9
@@ -55,9 +47,9 @@ EndProcedure
 			m = 1.35
 		EndIf
 		
-		nz.f = player_y(id) + offset
+		Define nz.f = player_y(id) + offset
 		
-		z.f = 0.0
+		Define z.f = 0.0
 		
 		
 		If player_velocity_x(id) < 0.0
@@ -147,7 +139,7 @@ EndProcedure
 	EndProcedure
 	
 Procedure.f player_speed(id.l)
-  f5.f = 1.0
+  Define f5.f = 1.0
   If player_airborne(id) = 1
 	  f5 * 0.3
   ElseIf player_keystates2(id) & #KEY_CROUCH
@@ -177,7 +169,7 @@ Procedure moveplayer(dt.f, id.l)
 			player_lastJump(id) = 0
 		EndIf
 				
-		f5.f = dt
+		Define f5.f = dt
 		If player_airborne(id) = 1
 			f5 * 0.1
 		ElseIf player_keystates2(id) & #KEY_CROUCH
@@ -191,12 +183,12 @@ Procedure moveplayer(dt.f, id.l)
 			f5 / Sqr(2.0)
 		EndIf
 		
-		front_x.f = player_angle_x(id)
-		front_z.f = player_angle_z(id)
+		Define front_x.f = player_angle_x(id)
+		Define front_z.f = player_angle_z(id)
 		
-		left_x.f = player_angle_z(id)
-		left_z.f = -player_angle_x(id)
-		len.f = Sqr(left_x*left_x+left_z*left_z)
+		Define left_x.f = player_angle_z(id)
+		Define left_z.f = -player_angle_x(id)
+		Define len.f = Sqr(left_x*left_x+left_z*left_z)
 		left_x = left_x/len
 		left_z = left_z/len
 
@@ -228,7 +220,7 @@ Procedure moveplayer(dt.f, id.l)
 		player_velocity_x(id) / f5
 		player_velocity_z(id) / f5
 		
-		f2.f = player_velocity_y(id)
+		Define f2.f = player_velocity_y(id)
 		boxClipMove(dt,id)
 		
 		;hit ground
@@ -247,18 +239,22 @@ Procedure moveplayer(dt.f, id.l)
 		If player_velocity_y(id) >= 0.0 And player_velocity_y(id) < 0.017 And Not player_keystates2(id) & #KEY_SNEAK And Not player_keystates2(id) & #KEY_CROUCH And Not (player_right_button(id) And IsToolWeapon(id))
 			;count move distance
 			f5 = dt * 32.0
-			dx.f = f5 * player_velocity_x(id)
-			dy.f = f5 * player_velocity_z(id)
-			dist.f = Sqr(dx*dx+dy*dy)
+			Define dx.f = f5 * player_velocity_x(id)
+			Define dy.f = f5 * player_velocity_z(id)
+			Define dist.f = Sqr(dx*dx+dy*dy)
 			player_moveDistance(id) + dist * 0.3
 			
-			madeFootstep.l = 0
+			Define madeFootstep.l = 0
 			While player_moveDistance(id) > 1.0
 				player_moveSteps(id) + 1
 				player_moveDistance(id) - 1.0
 				
 				If madeFootstep = 0
-          player_step_sound_id(id) = createSoundSource(Random(3),player_x(id),player_y(id),player_z(id),24.0)				  
+				  If player_wade(id) = 1
+				    player_step_sound_id(id) = createSoundSource(4+Random(3),player_x(id),player_y(id),player_z(id),24.0)
+				  Else
+				    player_step_sound_id(id) = createSoundSource(Random(3),player_x(id),player_y(id),player_z(id),24.0)
+				  EndIf
 					;TODO world->GetListener()->PlayerMadeFootstep(this)
 					madeFootstep = 1
 				EndIf
@@ -266,8 +262,8 @@ Procedure moveplayer(dt.f, id.l)
 		EndIf
 EndProcedure
 ; IDE Options = PureBasic 5.31 (Windows - x86)
-; CursorPosition = 38
-; FirstLine = 6
+; CursorPosition = 199
+; FirstLine = 120
 ; Folding = --
 ; EnableUnicode
 ; EnableXP

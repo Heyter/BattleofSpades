@@ -1,11 +1,14 @@
-﻿Procedure loadTextureFromImage(image,free,alpha,filter)
-  buffer = AllocateMemory(ImageWidth(image)*ImageHeight(image)*4)
-  offset = 0
+﻿Procedure loadTextureFromImage(image,free,alpha,filter,has_alpha)
+  glPushAttrib_(#GL_ALL_ATTRIB_BITS)
+  Define buffer = AllocateMemory(ImageWidth(image)*ImageHeight(image)*4)
+  Define offset = 0
   StartDrawing(ImageOutput(image))
   DrawingMode(#PB_2DDrawing_AlphaBlend)
+  Define y = 0
+  Define x = 0
   For y = 0 To ImageHeight(image)-1
     For x = 0 To ImageWidth(image)-1
-      color = Point(x,y)
+      Define color = Point(x,y)
       PokeA(buffer+offset,Red(color))
       PokeA(buffer+offset+1,Green(color))
       PokeA(buffer+offset+2,Blue(color))
@@ -16,14 +19,18 @@
           PokeA(buffer+offset+3,255)
         EndIf
       Else
-        PokeA(buffer+offset+3,Alpha(color))
+        If has_alpha = 1
+          PokeA(buffer+offset+3,Alpha(color))
+        Else
+          PokeA(buffer+offset+3,255)
+        EndIf
       EndIf
       offset + 4
     Next
   Next
   StopDrawing()
   glEnable_(#GL_TEXTURE_2D)
-  texture = -1
+  Define texture = -1
   glGenTextures_(1,@texture)
   glBindTexture_(#GL_TEXTURE_2D, texture)
   glTexEnvi_(#GL_TEXTURE_ENV, #GL_TEXTURE_ENV_MODE, #GL_MODULATE)
@@ -41,18 +48,23 @@
     FreeImage(image)
   EndIf
   FreeMemory(buffer)
+  glPopAttrib_()
   ProcedureReturn texture
 EndProcedure
 
+Procedure texture_free(id.l)
+  glDeleteTextures_(1,@id)
+EndProcedure
+
 Procedure loadBMPTextureFile(filename$)
-  ProcedureReturn loadTextureFromImage(LoadImage(#PB_Any,filename$),1,1,0)
+  ProcedureReturn loadTextureFromImage(LoadImage(#PB_Any,filename$),1,1,0,1)
 EndProcedure
 
 Procedure loadPNGTextureFile(filename$)
-  ProcedureReturn loadTextureFromImage(LoadImage(#PB_Any,filename$),1,0,1)
+  ProcedureReturn loadTextureFromImage(LoadImage(#PB_Any,filename$),1,0,1,1)
 EndProcedure
 ; IDE Options = PureBasic 5.31 (Windows - x86)
-; CursorPosition = 10
+; CursorPosition = 24
 ; Folding = -
 ; EnableUnicode
 ; EnableXP

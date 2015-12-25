@@ -1,5 +1,5 @@
 ﻿Procedure.l createMatrix(a.f,b.f,c.f,d.f, e.f,f.f,g.f,h.f, i.f,j.f,k.f,l.f, m.f,n.f,o.f,p.f)
-  new_matrix_location.l = AllocateMemory(64)
+  Define new_matrix_location.l = AllocateMemory(64)
   PokeF(new_matrix_location+0,a)
   PokeF(new_matrix_location+4,b)
   PokeF(new_matrix_location+8,c)
@@ -23,7 +23,7 @@
 EndProcedure
 
 Procedure.l createVector(a.f,b.f,c.f,d.f)
-  new_vector_location.l = AllocateMemory(16)
+  Define new_vector_location.l = AllocateMemory(16)
   PokeF(new_vector_location+0,a)
   PokeF(new_vector_location+4,b)
   PokeF(new_vector_location+8,c)
@@ -40,7 +40,7 @@ Procedure.l editVector(vector.l,a.f,b.f,c.f,d.f)
 EndProcedure
 
 Procedure.l multiplyMatrix(dest.l, matrix.l, other_matrix.l)
-  new_matrix_location.l = dest
+  Define new_matrix_location.l = dest
   PokeF(new_matrix_location+0,PeekF(matrix+0)*PeekF(other_matrix+0)+PeekF(matrix+16)*PeekF(other_matrix+4)+PeekF(matrix+32)*PeekF(other_matrix+8)+PeekF(matrix+48)*PeekF(other_matrix+12))
   PokeF(new_matrix_location+4,PeekF(matrix+4)*PeekF(other_matrix+0)+PeekF(matrix+20)*PeekF(other_matrix+4)+PeekF(matrix+36)*PeekF(other_matrix+8)+PeekF(matrix+52)*PeekF(other_matrix+12))
   PokeF(new_matrix_location+8,PeekF(matrix+8)*PeekF(other_matrix+0)+PeekF(matrix+24)*PeekF(other_matrix+4)+PeekF(matrix+40)*PeekF(other_matrix+8)+PeekF(matrix+56)*PeekF(other_matrix+12))
@@ -79,8 +79,8 @@ Procedure.l getRow(dest.l, matrix.l,pos.l)
 	ProcedureReturn dest
 EndProcedure
 ; IDE Options = PureBasic 5.31 (Windows - x86)
-; CursorPosition = 33
-; FirstLine = 25
+; CursorPosition = 42
+; FirstLine = 26
 ; Folding = -
 ; EnableUnicode
 ; EnableXP

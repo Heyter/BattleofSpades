@@ -10,6 +10,7 @@ Global own_deaths.l = 0
 Global own_block_red.l = 112
 Global own_block_green.l = 112
 Global own_block_blue.l = 112
+Global action_lock.l = 0
 
 Global own_ammo.l = 0
 Global own_max_ammo.l = 0
@@ -36,6 +37,8 @@ Global position_time.l
 Global Dim namelist.s(32)
 Global Dim teamlist.l(32)
 Global Dim weaponlist.l(32)
+
+Global Dim player_connected.l(32)
 
 Global Dim player_x.f(32)
 Global Dim player_y.f(32)
@@ -89,115 +92,28 @@ Global Dim player_eye_y.f(32)
 
 XIncludeFile "playerphysics.pb"
 
-Procedure.f getOwnX()
-  position_delta_time.l = own_new_position_time-own_old_position_time
-   If ElapsedMilliseconds() > position_delta_time+own_new_position_time
-     ProcedureReturn own_position_x
-   EndIf
-  x_scale.f = (own_position_x-own_old_position_x)/position_delta_time
-  x_position.f = (ElapsedMilliseconds()-own_new_position_time)*x_scale
-  ProcedureReturn x_position+own_old_position_x
-EndProcedure
-
-Procedure.f getOwnY()
-  position_delta_time.l = own_new_position_time-own_old_position_time
-   If ElapsedMilliseconds() > position_delta_time+own_new_position_time
-     ProcedureReturn own_position_y
-   EndIf
-  y_scale.f = (own_position_y-own_old_position_y)/position_delta_time
-  y_position.f = (ElapsedMilliseconds()-own_new_position_time)*y_scale
-  ProcedureReturn y_position+own_old_position_y
-EndProcedure
-
-Procedure.f getOwnZ()
-  position_delta_time.l = own_new_position_time-own_old_position_time
-   If ElapsedMilliseconds() > position_delta_time+own_new_position_time
-     ProcedureReturn own_position_z
-   EndIf
-  z_scale.f = (own_position_z-own_old_position_z)/position_delta_time
-  z_position.f = (ElapsedMilliseconds()-own_new_position_time)*z_scale
-  ProcedureReturn z_position+own_old_position_z
-EndProcedure
-
 Procedure.f getPlayerX(player_id)
-  If player_id = own_player_id
-    ProcedureReturn player_x(player_id)
-  EndIf
-  position_delta_time.l = player_new_position_time-player_old_position_time
-  If ElapsedMilliseconds() > position_delta_time+player_new_position_time
-    ProcedureReturn player_x(player_id)
-  EndIf
-  x_scale.f = (player_x(player_id)-player_old_x(player_id))/position_delta_time
-  x_position.f = (position_time-player_new_position_time)*x_scale
-  ProcedureReturn x_position+player_old_x(player_id)
+  ProcedureReturn player_x(player_id)
 EndProcedure
 
 Procedure.f getPlayerY(player_id)
-  If player_id = own_player_id
-    ProcedureReturn player_y(player_id)
-  EndIf
-  position_delta_time.l = player_new_position_time-player_old_position_time
-  If ElapsedMilliseconds() > position_delta_time+player_new_position_time
-    ProcedureReturn player_y(player_id)
-  EndIf
-  y_scale.f = (player_y(player_id)-player_old_y(player_id))/position_delta_time
-  y_position.f = (position_time-player_new_position_time)*y_scale
-  ProcedureReturn y_position+player_old_y(player_id)
+  ProcedureReturn player_y(player_id)
 EndProcedure
 
 Procedure.f getPlayerZ(player_id)
-  If player_id = own_player_id
-    ProcedureReturn player_z(player_id)
-  EndIf
-  position_delta_time.l = player_new_position_time-player_old_position_time
-  If ElapsedMilliseconds() > position_delta_time+player_new_position_time
-    ProcedureReturn player_z(player_id)
-  EndIf
-  z_scale.f = (player_z(player_id)-player_old_z(player_id))/position_delta_time
-  z_position.f = (position_time-player_new_position_time)*z_scale
-  ProcedureReturn z_position+player_old_z(player_id)
+  ProcedureReturn player_z(player_id)
 EndProcedure
 
 Procedure.f getPlayerAngleX(player_id)
-;   If player_id = own_player_id
-;     ProcedureReturn Sin(camera_rot_x)*Sin(camera_rot_y)
-;   EndIf
   ProcedureReturn player_angle_x(player_id)
-  position_delta_time.l = player_new_position_time-player_old_position_time
-  If ElapsedMilliseconds() > position_delta_time+player_new_position_time
-    ProcedureReturn player_angle_x(player_id)
-  EndIf
-  x_scale.f = (player_angle_x(player_id)-player_old_angle_x(player_id))/position_delta_time
-  x_angle.f = (position_time-player_new_position_time)*x_scale
-  ProcedureReturn x_angle+player_old_angle_x(player_id)
 EndProcedure
 
 Procedure.f getPlayerAngleY(player_id)
-;   If player_id = own_player_id
-;     ProcedureReturn Cos(camera_rot_y)
-;   EndIf
   ProcedureReturn player_angle_y(player_id)
-  position_delta_time.l = player_new_position_time-player_old_position_time
-  If ElapsedMilliseconds() > position_delta_time+player_new_position_time
-    ProcedureReturn player_angle_y(player_id)
-  EndIf
-  y_scale.f = (player_angle_y(player_id)-player_old_angle_y(player_id))/position_delta_time
-  y_angle.f = (position_time-player_new_position_time)*y_scale
-  ProcedureReturn y_angle+player_old_angle_y(player_id)
 EndProcedure
 
 Procedure.f getPlayerAngleZ(player_id)
-;   If player_id = own_player_id
-;     ProcedureReturn Cos(camera_rot_x)*Sin(camera_rot_y)
-;   EndIf
   ProcedureReturn player_angle_z(player_id)
-  position_delta_time.l = player_new_position_time-player_old_position_time
-  If ElapsedMilliseconds() > position_delta_time+player_new_position_time
-    ProcedureReturn player_angle_z(player_id)
-  EndIf
-  z_scale.f = (player_angle_z(player_id)-player_old_angle_z(player_id))/position_delta_time
-  z_angle.f = (position_time-player_new_position_time)*z_scale
-  ProcedureReturn z_angle+player_old_angle_z(player_id)
 EndProcedure
 
 Procedure.l isMoving(player_id)
@@ -214,107 +130,111 @@ EndProcedure
 
 
 Procedure updatePlayer(player_id, dt.f)
-  If player_id = own_player_id
+  ;If player_id = own_player_id
     player_old_x(player_id) = player_x(player_id)
     player_old_y(player_id) = player_y(player_id)
     player_old_z(player_id) = player_z(player_id)
-  
+    
     player_y(player_id) = 64.0-player_y(player_id)
     player_angle_y(player_id) = -player_angle_y(player_id)
     moveplayer(dt,player_id)
     player_angle_y(player_id) = -player_angle_y(player_id)
     player_y(player_id) = 64.0-player_y(player_id)
     player_eye_y(player_id) = 64.0-player_eye_y(player_id)
-  EndIf
+    ;EndIf
+   
   
 ;   If player_left_button(player_id) = 0 And player_right_button(player_id) = 0
 ;     player_last_shot(player_id) = 0
 ;   EndIf
-  If player_left_button(player_id) = 1 And player_item(player_id) = 2 And ElapsedMilliseconds()-player_last_shot(player_id)>=shot_times(weaponlist(player_id)) And player_dead(player_id) = 0 And player_ammo(player_id) > 0
-    For k=0 To 511
-      If tracer_used(k) = 0
-        tracer_x(k) = getPlayerX(player_id)+getPlayerAngleX(player_id)+0.5
-        tracer_y(k) = getPlayerY(player_id)+getPlayerAngleY(player_id)
-        tracer_z(k) = getPlayerZ(player_id)+getPlayerAngleZ(player_id)+0.5
-        tracer_speed_x(k) = getPlayerAngleX(player_id)
-        tracer_speed_y(k) = getPlayerAngleY(player_id)
-        tracer_speed_z(k) = getPlayerAngleZ(player_id)
-        tracer_created(k) = ElapsedMilliseconds()
-        tracer_creator(k) = id
-        tracer_used(k) = 1
-        Break
-      EndIf
-    Next
-    
-    If player_id = own_player_id
-      If Not faced_player = -1
-        sendHitPacket(faced_player,faced_player_part)
-      EndIf
-      camera_rot_x + (Sin(shooting_recoil_offset+0.1)-Sin(shooting_recoil_offset))*0.05
-      camera_rot_y - 0.005
-      shooting_recoil_offset + 0.2
-    EndIf
-    
-    createSoundSource(15+weaponlist(player_id),getPlayerX(player_id),getPlayerY(player_id),getPlayerZ(player_id),16.0)
-    player_last_shot(player_id) = ElapsedMilliseconds()
-    player_ammo(player_id) - 1
-  EndIf
-  If player_left_button(player_id) = 1 And player_item(player_id) = 0 And ElapsedMilliseconds()-player_last_shot(player_id)>=#PLAYER_SPADE_TIME*3 And player_dead(player_id) = 0
-    player_dig_anim_start(player_id) = ElapsedMilliseconds()
-    player_dig_anim_speed(player_id) = 1.0
-    
-    If player_id = own_player_id And object_distance < 4.0
-      If faced_player = -1
-        If Not faced_block_x = -1
-          sendBlockActionPacket(1,faced_block_x,faced_block_y,faced_block_z)
+    If Not player_id = own_player_id Or (ElapsedMilliseconds()>action_lock And player_id = own_player_id)
+      If player_left_button(player_id) = 1 And player_item(player_id) = 2 And ElapsedMilliseconds()-player_last_shot(player_id)>=shot_times(weaponlist(player_id)) And player_dead(player_id) = 0 And player_ammo(player_id) > 0
+          Define k
+          For k=0 To 511
+            If tracer_used(k) = 0
+              tracer_x(k) = getPlayerX(player_id)+getPlayerAngleX(player_id)+0.5
+              tracer_y(k) = getPlayerY(player_id)+getPlayerAngleY(player_id)
+              tracer_z(k) = getPlayerZ(player_id)+getPlayerAngleZ(player_id)+0.5
+              tracer_speed_x(k) = getPlayerAngleX(player_id)
+              tracer_speed_y(k) = getPlayerAngleY(player_id)
+              tracer_speed_z(k) = getPlayerAngleZ(player_id)
+              tracer_created(k) = ElapsedMilliseconds()
+              tracer_creator(k) = player_id
+              tracer_used(k) = 1
+              Break
+            EndIf
+        Next
+        
+        If player_id = own_player_id
+          If Not faced_player = -1
+            sendHitPacket(faced_player,faced_player_part)
+          EndIf
+          camera_rot_x + (Sin(shooting_recoil_offset+0.1)-Sin(shooting_recoil_offset))*0.05
+          camera_rot_y - recoil(own_weapon)
+          shooting_recoil_offset + 0.2
         EndIf
-      Else
-        sendHitPacket(faced_player,4)
+        createSoundSource(15+weaponlist(player_id),getPlayerX(player_id),getPlayerY(player_id),getPlayerZ(player_id),16.0)
+        player_last_shot(player_id) = ElapsedMilliseconds()
+        player_ammo(player_id) - 1
+    EndIf
+    If player_left_button(player_id) = 1 And player_item(player_id) = 0 And ElapsedMilliseconds()-player_last_shot(player_id)>=#PLAYER_SPADE_TIME*3 And player_dead(player_id) = 0
+      player_dig_anim_start(player_id) = ElapsedMilliseconds()
+      player_dig_anim_speed(player_id) = 1.0
+      
+      If player_id = own_player_id And object_distance < 4.0
+        If faced_player = -1
+          If Not faced_block_x = -1
+            sendBlockActionPacket(1,faced_block_x,faced_block_y,faced_block_z)
+          EndIf
+        Else
+          sendHitPacket(faced_player,4)
+          spawnParticleCloud(64,player_x(faced_player),player_y(faced_player)+0.5,player_z(faced_player),0.15,0.0625,0.2,RGB(255,0,0))
+        EndIf
       EndIf
+      
+      createSoundSource(23,getPlayerX(player_id),getPlayerY(player_id),getPlayerZ(player_id),16.0)
+      player_last_shot(player_id) = ElapsedMilliseconds()
     EndIf
-    
-    createSoundSource(23,getPlayerX(player_id),getPlayerY(player_id),getPlayerZ(player_id),16.0)
-    player_last_shot(player_id) = ElapsedMilliseconds()
-  EndIf
-  If player_right_button(player_id) = 1 And player_item(player_id) = 0 And ElapsedMilliseconds()-player_last_shot(player_id)>=#PLAYER_SPADE_TIME*3*3 And player_dead(player_id) = 0
-    player_dig_anim_start(player_id) = ElapsedMilliseconds()
-    player_dig_anim_speed(player_id) = 3.0
-    
-    If player_id = own_player_id And object_distance < 4.0 And Not faced_block_x = -1
-      sendBlockActionPacket(2,faced_block_x,faced_block_y,faced_block_z)
+    If player_right_button(player_id) = 1 And player_item(player_id) = 0 And ElapsedMilliseconds()-player_last_shot(player_id)>=#PLAYER_SPADE_TIME*3*3 And player_dead(player_id) = 0
+      player_dig_anim_start(player_id) = ElapsedMilliseconds()
+      player_dig_anim_speed(player_id) = 3.0
+      
+      If player_id = own_player_id And object_distance < 4.0 And Not faced_block_x = -1
+        sendBlockActionPacket(2,faced_block_x,faced_block_y,faced_block_z)
+      EndIf
+      
+      createSoundSource(23,getPlayerX(player_id),getPlayerY(player_id),getPlayerZ(player_id),16.0)
+      player_last_shot(player_id) = ElapsedMilliseconds()
     EndIf
-    
-    createSoundSource(23,getPlayerX(player_id),getPlayerY(player_id),getPlayerZ(player_id),16.0)
-    player_last_shot(player_id) = ElapsedMilliseconds()
-  EndIf
-  If player_left_button(player_id) = 1 And player_item(player_id) = 1 And ElapsedMilliseconds()-player_last_shot(player_id)>=#PLAYER_SPADE_TIME*3 And player_dead(player_id) = 0
-    player_dig_anim_start(player_id) = ElapsedMilliseconds()
-    player_dig_anim_speed(player_id) = 1.0
-    
-    If player_id = own_player_id And object_distance < 4.0 And Not build_block_x = -1 And Not isBlockSolid(getBlockSafe(build_block_x,build_block_y,build_block_z))
-      sendBlockActionPacket(0,build_block_x,build_block_y,build_block_z)
+    If player_left_button(player_id) = 1 And player_item(player_id) = 1 And ElapsedMilliseconds()-player_last_shot(player_id)>=#PLAYER_SPADE_TIME*3 And player_dead(player_id) = 0
+      player_dig_anim_start(player_id) = ElapsedMilliseconds()
+      player_dig_anim_speed(player_id) = 1.0
+      
+      If player_id = own_player_id And object_distance < 4.0 And Not build_block_x = -1 And Not isBlockSolid(getBlockSafe(build_block_x,build_block_y,build_block_z))
+        sendBlockActionPacket(0,build_block_x,build_block_y,build_block_z)
+      EndIf
+      
+      player_last_shot(player_id) = ElapsedMilliseconds()
     EndIf
-    
-    player_last_shot(player_id) = ElapsedMilliseconds()
-  EndIf
-  If player_left_button(player_id) = 1 And player_item(player_id) = 3 And ElapsedMilliseconds()-player_last_shot(player_id)>=#PLAYER_SPADE_TIME*3 And player_dead(player_id) = 0
-    player_dig_anim_start(player_id) = ElapsedMilliseconds()
-    player_dig_anim_speed(player_id) = 1.0
-    
-    If player_id = own_player_id
-      sendGrenade(player_x(own_player_id),player_y(own_player_id),player_z(own_player_id),2.5)
-      v_x.f = Sin(camera_rot_x)*Sin(camera_rot_y)
-      v_y.f = Cos(camera_rot_y)
-      v_z.f = Cos(camera_rot_x)*Sin(camera_rot_y)
-      spawnGrenade(player_x(own_player_id),64.0-player_y(own_player_id),player_z(own_player_id),v_x,-v_y,v_z,3.0)
+    If player_left_button(player_id) = 1 And player_item(player_id) = 3 And ElapsedMilliseconds()-player_last_shot(player_id)>=#PLAYER_SPADE_TIME*3 And player_dead(player_id) = 0
+      player_dig_anim_start(player_id) = ElapsedMilliseconds()
+      player_dig_anim_speed(player_id) = 1.0
+      
+      If player_id = own_player_id
+        sendGrenade(player_x(own_player_id),player_y(own_player_id),player_z(own_player_id),1.0)
+        Define v_x.f = Sin(camera_rot_x)*Sin(camera_rot_y)
+        Define v_y.f = Cos(camera_rot_y)
+        Define v_z.f = Cos(camera_rot_x)*Sin(camera_rot_y)
+        spawnGrenade(player_x(own_player_id),64.0-player_y(own_player_id),player_z(own_player_id),v_x,-v_y,v_z,1.0)
+      EndIf
+      
+      player_last_shot(player_id) = ElapsedMilliseconds()
     EndIf
-    
-    player_last_shot(player_id) = ElapsedMilliseconds()
   EndIf
 EndProcedure
 ; IDE Options = PureBasic 5.31 (Windows - x86)
-; CursorPosition = 254
-; FirstLine = 222
+; CursorPosition = 149
+; FirstLine = 45
 ; Folding = --
 ; EnableUnicode
 ; EnableThread

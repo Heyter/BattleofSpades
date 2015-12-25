@@ -15,9 +15,11 @@ $RECYCLE.BIN/
 *.msp
 *.zip
 *.exe
+config.ini
 glew32.dll
 enet.dll
 dll/enet
+dll/dll.o
 enet.lib
 
 # Windows shortcuts

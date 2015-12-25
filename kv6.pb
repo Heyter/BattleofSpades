@@ -1,26 +1,39 @@
-﻿Procedure.l loadKV6(filename$,custom_color.l)
+﻿Global Dim kv6_size_x.l(64)
+Global Dim kv6_size_y.l(64)
+Global Dim kv6_size_z.l(64)
+Global Dim kv6_index.l(64)
+
+#KV6_INDEX_FREE = -1
+
+For k=0 To 64
+  kv6_index(k) = #KV6_INDEX_FREE
+Next
+
+
+Procedure.l loadKV6(filename$,custom_color.l)
   ReadFile(256,filename$)
   If Not ReadString(256,#PB_UTF8,4) = "Kvxl"
     ProcedureReturn -1
   EndIf
-  xsiz.l = ReadLong(256)
-  ysiz.l = ReadLong(256)
-  zsiz.l = ReadLong(256)
-  xpivot.f = ReadFloat(256)
-  ypivot.f = ReadFloat(256)
-  zpivot.f = ReadFloat(256)
-  blklen.l = ReadLong(256)
+  Define xsiz.l = ReadLong(256)
+  Define ysiz.l = ReadLong(256)
+  Define zsiz.l = ReadLong(256)
+  Define xpivot.f = ReadFloat(256)
+  Define ypivot.f = ReadFloat(256)
+  Define zpivot.f = ReadFloat(256)
+  Define blklen.l = ReadLong(256)
   Dim blkdata_color(blklen)
   Dim blkdata_zpos(blklen)
   Dim blkdata_visfaces(blklen)
   Dim blockdata_color.l(xsiz,zsiz,ysiz)
   Dim blockdata_visfaces.l(xsiz,zsiz,ysiz)
   Dim blockdata_occupied.l(xsiz,zsiz,ysiz)
+  Define k
   For k=0 To blklen-1
-    color = ReadLong(256)
-    zpos = ReadWord(256)
-    visfaces = ReadByte(256)
-    lighting = ReadByte(256)
+    Define color = ReadLong(256)
+    Define zpos = ReadWord(256)
+    Define visfaces = ReadByte(256)
+    Define lighting = ReadByte(256)
     blkdata_color(k) = color
     blkdata_zpos(k) = zpos
     blkdata_visfaces(k) = visfaces
@@ -28,12 +41,13 @@
   For k=0 To xsiz-1
     ReadLong(256)
   Next
-  offset = 0
+  Define offset = 0
+  Define x,y,k
   For x=0 To xsiz-1
     For y=0 To ysiz-1
-      size = ReadWord(256)
+      Define size = ReadWord(256)
       For k=0 To size-1
-        c = blkdata_color(offset)
+        Define c = blkdata_color(offset)
         blockdata_color(x,blkdata_zpos(offset),y) = RGB(Blue(c),Green(c),Red(c))
         If blockdata_color(x,blkdata_zpos(offset),y) = 0
           blockdata_color(x,blkdata_zpos(offset),y) = custom_color
@@ -46,24 +60,25 @@
   Next
   CloseFile(256)
   
-  displaylist = glGenLists_(1)
+  Define displaylist = glGenLists_(1)
   glNewList_(displaylist,#GL_COMPILE)
-  vertex_buffer = AllocateMemory(256*1024)
-  vertex_buffer_start = vertex_buffer
-  color_buffer = AllocateMemory(256*1024)
-  color_buffer_start = color_buffer
-  triangle_count.l = 0
+  Define vertex_buffer = AllocateMemory(256*1024)
+  Define vertex_buffer_start = vertex_buffer
+  Define color_buffer = AllocateMemory(256*1024)
+  Define color_buffer_start = color_buffer
+  Define triangle_count.l = 0
+  Define x,y,z
   For x=0 To xsiz-1
     For y=0 To zsiz-1
       For z=0 To ysiz-1
         If blockdata_occupied(x,y,z) = 1
-          red.f = Red(blockdata_color(x,y,z))/255.0
-          green.f = Green(blockdata_color(x,y,z))/255.0
-          blue.f = Blue(blockdata_color(x,y,z))/255.0
-          x2.f = x*0.25
-          y2.f = (zsiz-y)*0.25
-          z2.f = z*0.25
-          ;If blockdata_visfaces(x,y,z) & 5
+          Define red.f = Red(blockdata_color(x,y,z))/255.0
+          Define green.f = Green(blockdata_color(x,y,z))/255.0
+          Define blue.f = Blue(blockdata_color(x,y,z))/255.0
+          Define x2.f = x*0.25
+          Define y2.f = (zsiz-y)*0.25
+          Define z2.f = z*0.25
+          If blockdata_occupied(x,y,z+1) = 0;blockdata_visfaces(x,y,z) & 5
             vertex_buffer = writeVertexToBuffer(vertex_buffer,0.25+x2,0.25+y2,0.25+z2)
             vertex_buffer = writeVertexToBuffer(vertex_buffer,0.0+x2,0.25+y2,0.25+z2)
             vertex_buffer = writeVertexToBuffer(vertex_buffer,0.25+x2,0.0+y2,0.25+z2)
@@ -80,8 +95,8 @@
             color_buffer = writeColorToBuffer(color_buffer,red*0.7,green*0.7,blue*0.7)
             color_buffer = writeColorToBuffer(color_buffer,red*0.7,green*0.7,blue*0.7)
             triangle_count + 6
-          ;EndIf
-          ;If blockdata_visfaces(x,y,z) & 6
+          EndIf
+          If blockdata_occupied(x,y,z-1) = 0;blockdata_visfaces(x,y,z) & 6
             vertex_buffer = writeVertexToBuffer(vertex_buffer,0.0+x2,0.0+y2,0.0+z2)
             vertex_buffer = writeVertexToBuffer(vertex_buffer,0.0+x2,0.25+y2,0.0+z2)
             vertex_buffer = writeVertexToBuffer(vertex_buffer,0.25+x2,0.0+y2,0.0+z2)
@@ -98,8 +113,8 @@
             color_buffer = writeColorToBuffer(color_buffer,red*0.7,green*0.7,blue*0.7)
             color_buffer = writeColorToBuffer(color_buffer,red*0.7,green*0.7,blue*0.7)
             triangle_count + 6
-          ;EndIf
-          ;If blockdata_visfaces(x,y,z) & 4
+          EndIf
+          If blockdata_occupied(x,y+1,z) = 0;blockdata_visfaces(x,y,z) & 4
             vertex_buffer = writeVertexToBuffer(vertex_buffer,0.0+x2,0.0+y2,0.0+z2)
             vertex_buffer = writeVertexToBuffer(vertex_buffer,0.25+x2,0.0+y2,0.0+z2)
             vertex_buffer = writeVertexToBuffer(vertex_buffer,0.0+x2,0.0+y2,0.25+z2)
@@ -116,8 +131,8 @@
             color_buffer = writeColorToBuffer(color_buffer,red*0.5,green*0.5,blue*0.5)
             color_buffer = writeColorToBuffer(color_buffer,red*0.5,green*0.5,blue*0.5)
             triangle_count + 6
-          ;EndIf
-          ;If blockdata_visfaces(x,y,z) & 1
+          EndIf
+          If blockdata_occupied(x+1,y,z) = 0;blockdata_visfaces(x,y,z) & 1
             vertex_buffer = writeVertexToBuffer(vertex_buffer,0.25+x2,0.25+y2,0.25+z2)
             vertex_buffer = writeVertexToBuffer(vertex_buffer,0.25+x2,0.0+y2,0.25+z2)
             vertex_buffer = writeVertexToBuffer(vertex_buffer,0.25+x2,0.25+y2,0.0+z2)
@@ -134,8 +149,8 @@
             color_buffer = writeColorToBuffer(color_buffer,red*0.9,green*0.9,blue*0.9)
             color_buffer = writeColorToBuffer(color_buffer,red*0.9,green*0.9,blue*0.9)
             triangle_count + 6
-          ;EndIf
-          ;If blockdata_visfaces(x,y,z) & 2
+          EndIf
+          If blockdata_occupied(x-1,y,z) = 0;blockdata_visfaces(x,y,z) & 2
             vertex_buffer = writeVertexToBuffer(vertex_buffer,0.0+x2,0.0+y2,0.0+z2)
             vertex_buffer = writeVertexToBuffer(vertex_buffer,0.0+x2,0.0+y2,0.25+z2)
             vertex_buffer = writeVertexToBuffer(vertex_buffer,0.0+x2,0.25+y2,0.0+z2)
@@ -152,8 +167,8 @@
             color_buffer = writeColorToBuffer(color_buffer,red*0.9,green*0.9,blue*0.9)
             color_buffer = writeColorToBuffer(color_buffer,red*0.9,green*0.9,blue*0.9)
             triangle_count + 6
-          ;EndIf
-          ;If blockdata_visfaces(x,y,z) & 3
+          EndIf
+          If blockdata_occupied(x,y-1,z) = 0;blockdata_visfaces(x,y,z) & 3
             vertex_buffer = writeVertexToBuffer(vertex_buffer,0.25+x2,0.25+y2,0.25+z2)
             vertex_buffer = writeVertexToBuffer(vertex_buffer,0.25+x2,0.25+y2,0.0+z2)
             vertex_buffer = writeVertexToBuffer(vertex_buffer,0.0+x2,0.25+y2,0.25+z2)
@@ -170,7 +185,7 @@
             color_buffer = writeColorToBuffer(color_buffer,red,green,blue)
             color_buffer = writeColorToBuffer(color_buffer,red,green,blue)
             triangle_count + 6
-          ;EndIf
+          EndIf
           ;rendercubeat(x*0.25,(zsiz-y)*0.25,z*0.25,0.25,0.25,0.25)
         EndIf
       Next
@@ -187,17 +202,59 @@
   FreeMemory(vertex_buffer_start)
   FreeMemory(color_buffer_start)
   
+  For k=0 To 64
+   If kv6_index(k) = #KV6_INDEX_FREE
+     kv6_index(k) = displaylist
+     kv6_size_x(k) = xsiz
+     kv6_size_y(k) = ysiz
+     kv6_size_z(k) = zsiz
+     Break
+   EndIf
+  Next
+  
   ProcedureReturn displaylist
 EndProcedure
 
+Procedure.l kv6_sx(id.l)
+  Define k
+  For k=0 To 64
+   If kv6_index(k) = id
+     ProcedureReturn kv6_size_x(k)
+   EndIf
+ Next
+ ProcedureReturn 0
+EndProcedure
+
+Procedure.l kv6_sy(id.l)
+  Define k
+  For k=0 To 64
+   If kv6_index(k) = id
+     ProcedureReturn kv6_size_y(k)
+   EndIf
+ Next
+ ProcedureReturn 0
+EndProcedure
+
+Procedure.l kv6_sz(id.l)
+  Define k
+  For k=0 To 64
+   If kv6_index(k) = id
+     ProcedureReturn kv6_size_z(k)
+   EndIf
+ Next
+ ProcedureReturn 0
+EndProcedure
+
 Procedure.l loadKV6ForTeams(filename$,custom_color1.l,custom_color2.l)
-  id.l = loadKV6(filename$,custom_color1)
+  Define id.l = loadKV6(filename$,custom_color1)
   loadKV6(filename$,custom_color2)
+  loadKV6(filename$,0)
   ProcedureReturn id.l
 EndProcedure
 ; IDE Options = PureBasic 5.31 (Windows - x86)
-; CursorPosition = 187
-; FirstLine = 142
+; CursorPosition = 116
+; FirstLine = 87
 ; Folding = -
 ; EnableUnicode
 ; EnableXP
+; UseMainFile = main.pb

@@ -9,6 +9,7 @@ Global Dim grenade_created.l(32)
 Global Dim grenade_alive.l(32)
 
 Procedure spawnGrenade(x.f,y.f,z.f,vx.f,vy.f,vz.f,fuse.f)
+  Define k
   For k=0 To 32
     If grenade_alive(k) = 0
       grenade_x(k) = x
@@ -27,26 +28,26 @@ EndProcedure
 
 ;returns 1 If there was a collision, 2 If sound should be played
 Procedure.l move_grenade(id.l,fsynctics.f)
-  fpos_x.f = grenade_x(id)
-  fpos_y.f = grenade_y(id)
-  fpos_z.f = grenade_z(id)
+  Define fpos_x.f = grenade_x(id)
+  Define fpos_y.f = grenade_y(id)
+  Define fpos_z.f = grenade_z(id)
   ;do velocity & gravity (friction is negligible)
-  f5.f = fsynctics * 32.0
+  Define f5.f = fsynctics * 32.0
   grenade_velocity_y(id) + fsynctics
   grenade_x(id) + grenade_velocity_x(id)*f5
   grenade_y(id) + grenade_velocity_y(id)*f5
   grenade_z(id) + grenade_velocity_z(id)*f5
   
   ;make it bounce (accurate)
-  lp_x.l = Round(grenade_x(id),#PB_Round_Down)
-  lp_y.l = Round(grenade_y(id),#PB_Round_Down)
-  lp_z.l = Round(grenade_z(id),#PB_Round_Down)
+  Define lp_x.l = Round(grenade_x(id),#PB_Round_Down)
+  Define lp_y.l = Round(grenade_y(id),#PB_Round_Down)
+  Define lp_z.l = Round(grenade_z(id),#PB_Round_Down)
   
-  lp2_x.l = Round(fpos_x,#PB_Round_Down)
-  lp2_y.l = Round(fpos_y,#PB_Round_Down)
-  lp2_z.l = Round(fpos_z,#PB_Round_Down)
+  Define lp2_x.l = Round(fpos_x,#PB_Round_Down)
+  Define lp2_y.l = Round(fpos_y,#PB_Round_Down)
+  Define lp2_z.l = Round(fpos_z,#PB_Round_Down)
    
-  ret.l = 0
+  Define ret.l = 0
     
   If clipworld(lp_x, lp_y, lp_z) ;hit a wall
       ret = 1
@@ -75,6 +76,7 @@ Procedure updateGrenade(id.l, dt.f)
   If ElapsedMilliseconds()-grenade_created(id)>=grenade_fuse(id)*1000.0
     createSoundSource(22,grenade_x(id),grenade_y(id),grenade_z(id),16.0) ;grenade explode sound
     ;TODO spawn smoke particles because of explosion etc.
+    spawnParticleCloud(64,grenade_x(id),64.0-grenade_y(id)+0.85+0.5,grenade_z(id),0.9,0.25,0.5,RGB(128,128,128))
     grenade_alive(id) = 0
   Else
     If move_grenade(id,dt) = 2
@@ -83,8 +85,8 @@ Procedure updateGrenade(id.l, dt.f)
   EndIf
 EndProcedure
 ; IDE Options = PureBasic 5.31 (Windows - x86)
-; CursorPosition = 80
-; FirstLine = 27
+; CursorPosition = 49
+; FirstLine = 32
 ; Folding = -
 ; EnableUnicode
 ; EnableXP

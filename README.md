@@ -18,20 +18,24 @@ it would be easy for users to update to the new client.
 
 Installing should be very easy then:
 
-Just grab a release from the 'releases' tab or feel free to build the client yourself.
-There're only two new files in the png directoy that you should also copy-paste to your local png-folder. These are
-'loading.png' and 'noise.bmp', where last one is an optional texture for blocks.
+Just grab a release from my website over at http://bytebit.info.tm/builds/battleofspades/ or feel free to build the
+client yourself. Just make sure to always download the newest release. Extract the 'client.exe' out of the zipped file
+and replace the existing one. There are only three other new files in the png directoy that you should also copy-paste to your
+local png-folder. These are 'loading.png', 'vignette.png' and 'noise.bmp', where last one is an optional texture for blocks.
 
 Compiling
 =========
 Requires full PureBasic 5.31 or a similar version. This project won't compile with the demo version,
-because it's over the line limit (around 5800 lines of code).
+because it is over the line limit (around 6700 lines of code).
 
 Also needed is the High precision timer library for PureBasic which you can find here:
 
 http://www.purebasic.fr/english/viewtopic.php?f=14&t=49325
 
 (better use the x86 version and put it in your UserLibrary folder)
+
+Also newest versions now require OpenAL, BoS therefore uses SoftAOL. Just rename it to 'soft_oal.dll' and place it in the
+root directory.
 
 Gameplay
 =========
@@ -48,13 +52,13 @@ Mouse	- change camera rotation
 
 1234	- switch weapons
 
-Escape  - enter/exit menu
+M Wheel - switch weapons
+
+Escape  - enter/exit pause menu
 
 LMB		- primary attack
 
-RMB		- secoundary attack
-
-B		- Switch shadows
+RMB		- secoundary attack (depends on equipped item)
 
 L		- show light view (only in shadow mode)
 
@@ -66,3 +70,5 @@ Helping out
 If you like you can help me by sending me your benchmarks of the client (use Fraps or something else).
 
 Please also provide information about your graphics card and cpu.
+
+Head over to http://bytebit.info.tm/benchmark.php to submit your data.
