@@ -2,6 +2,11 @@
 #PARTICLE_VANISH_TIME = 3000.0
 #PARTICLE_RENDER_DISTANCE = 32.0
 
+#PARTICLE_TYPE_SEMI = 0
+#PARTICLE_TYPE_SMG = 1
+#PARTICLE_TYPE_SHOTGUN = 2
+#PARTICLE_TYPE_BLOCK = 255
+
 Global particles_used.l = 0
 
 Global Dim particle_x.f(#PARTICLE_MAX)
@@ -15,8 +20,10 @@ Global Dim particle_size.f(#PARTICLE_MAX)
 Global Dim particle_color.l(#PARTICLE_MAX)
 Global Dim particle_used.l(#PARTICLE_MAX)
 Global Dim particle_block_hit.l(#PARTICLE_MAX)
+Global Dim particle_type.l(#PARTICLE_MAX)
 
 Procedure spawnParticleCloud(amount.l,center_x.f,center_y.f,center_z.f,max_spread.f,min_size.f,max_size.f,color.l)
+  amount << 1
   Define k,i
   For k=0 To amount-1
     For i=0 To #PARTICLE_MAX-1
@@ -30,6 +37,7 @@ Procedure spawnParticleCloud(amount.l,center_x.f,center_y.f,center_z.f,max_sprea
         particle_size(i) = Random(1000)*0.001*(max_size-min_size)+min_size
         particle_color(i) = color
         particle_block_hit(i) = 0
+        particle_type(i) = #PARTICLE_TYPE_BLOCK
         particle_used(i) = 1
         Break
       EndIf
@@ -86,7 +94,7 @@ Procedure renderParticles(dt.f,shadow.l,x.f,y.f,z.f)
         factor = 1.0-((ElapsedMilliseconds()-particle_block_hit(k))/#PARTICLE_VANISH_TIME)
       EndIf
       
-      If Pow(particle_x(k)-x,2)+Pow(particle_y(k)-y,2)+Pow(particle_z(k)-z,2) < #PARTICLE_RENDER_DISTANCE*#PARTICLE_RENDER_DISTANCE
+      If particle_type(k) = #PARTICLE_TYPE_BLOCK And Pow(particle_x(k)-x,2)+Pow(particle_y(k)-y,2)+Pow(particle_z(k)-z,2) < #PARTICLE_RENDER_DISTANCE*#PARTICLE_RENDER_DISTANCE
         Define color = particle_color(k)
         If shadow = 1
           glColor3f(Red(color)/255.0*0.5,Green(color)/255.0*0.5,Blue(color)/255.0*0.5)
@@ -102,7 +110,7 @@ Procedure renderParticles(dt.f,shadow.l,x.f,y.f,z.f)
   particles_used = count
 EndProcedure
 ; IDE Options = PureBasic 5.31 (Windows - x86)
-; CursorPosition = 18
+; CursorPosition = 25
 ; Folding = -
 ; EnableUnicode
 ; EnableXP

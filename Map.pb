@@ -6,9 +6,9 @@ Global map_data_compressed.l
 Global map_data_compressed_size.l
 Global map_data_compressed_index.l
 
-Global map_fog_red.f
-Global map_fog_green.f
-Global map_fog_blue.f
+Global map_fog_red.l
+Global map_fog_green.l
+Global map_fog_blue.l
 
 Global team_1_red.l = 0
 Global team_1_green.l = 0
@@ -75,6 +75,20 @@ Global Dim tent_x.l(16)
 Global Dim tent_y.l(16)
 Global Dim tent_z.l(16)
 Global Dim tent_team.l(16)
+Global Dim tent_progress.f(16)
+Global Dim tent_progress_team.l(16)
+
+#TENT_RADIUS = 16.0
+
+Procedure.l nearestTent(x.f,y.f,z.f)
+  Define k
+  For k=0 To tent_count-1
+    If Pow(tent_x(k)-x,2)+Pow(tent_y(k)-y,2)+Pow(tent_z(k)-z,2)<#TENT_RADIUS*#TENT_RADIUS
+      ProcedureReturn k
+    EndIf
+  Next
+  ProcedureReturn -1
+EndProcedure
 
 Procedure flagForUpdate(x.l,z.l)
   Define blockx.l = Int(x/8.0)
@@ -381,9 +395,8 @@ EndProcedure
 Global Dim cube_line_x.l(64)
 Global Dim cube_line_y.l(64)
 Global Dim cube_line_z.l(64)
-Global Dim cube_line_color.l(64)
 
-Procedure.l cube_line_native(x1.l,y1.l,z1.l,x2.l,y2.l,z2.l, color.l)
+Procedure.l cube_line_native(x1.l,y1.l,z1.l,x2.l,y2.l,z2.l)
   Define vector_c_x.l = 0
   Define vector_c_y.l = 0
   Define vector_c_z.l = 0
@@ -486,7 +499,6 @@ Procedure.l cube_line_native(x1.l,y1.l,z1.l,x2.l,y2.l,z2.l, color.l)
 	  cube_line_x(count) = vector_c_x
 	  cube_line_y(count) = 64-vector_c_z
 	  cube_line_z(count) = vector_c_y
-	  cube_line_color(count) = color
 		
 		count + 1
 		If count = 64
@@ -522,17 +534,20 @@ Procedure.l cube_line_native(x1.l,y1.l,z1.l,x2.l,y2.l,z2.l, color.l)
 EndProcedure
 
 Procedure.l cube_line(x1.l,y1.l,z1.l,x2.l,y2.l,z2.l,color.l)
-  Define count.l = cube_line_native(x1,z1,64-y1,x2,z2,64-y2,color)
+  Define count.l = cube_line_native(x1,z1,64-y1,x2,z2,64-y2)
   Define k.l
   For k=0 To count-1
-    setBlockSafe(cube_line_x(k),cube_line_y(k),cube_line_z(k),cube_line_color(k))
+    setBlockSafe(cube_line_x(k),cube_line_y(k),cube_line_z(k),color)
   Next
   ProcedureReturn count
 EndProcedure
 ; IDE Options = PureBasic 5.31 (Windows - x86)
-; CursorPosition = 107
-; FirstLine = 93
-; Folding = ----
+; CursorPosition = 137
+; FirstLine = 72
+; Folding = Q+---
 ; EnableUnicode
 ; EnableXP
 ; UseMainFile = main.pb
+; EnableCompileCount = 0
+; EnableBuildCount = 0
+; EnableExeConstant

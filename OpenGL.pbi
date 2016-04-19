@@ -1143,7 +1143,7 @@
 
 ; ***********************************************************
 ; IDE Options = PureBasic 5.31 (Windows - x86)
-; CursorPosition = 1129
-; FirstLine = 1089
+; CursorPosition = 1141
+; FirstLine = 1087
 ; EnableUnicode
 ; EnableXP

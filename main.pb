@@ -42,7 +42,6 @@ Procedure ErrorHandler()
       ErrorMessage$ + "RSI = " + Str(ErrorRegister(#PB_OnError_RSI)) + Chr(13)
       ErrorMessage$ + "RDI = " + Str(ErrorRegister(#PB_OnError_RDI)) + Chr(13)
       ErrorMessage$ + "RSP = " + Str(ErrorRegister(#PB_OnError_RSP)) + Chr(13)
-      ErrorMessage$ + "Display of registers R8-R15 skipped."         + Chr(13)
  
     CompilerCase #PB_Processor_PowerPC
       ErrorMessage$ + "r0 = " + Str(ErrorRegister(#PB_OnError_r0)) + Chr(13)
@@ -53,11 +52,11 @@ Procedure ErrorHandler()
       ErrorMessage$ + "r5 = " + Str(ErrorRegister(#PB_OnError_r5)) + Chr(13)
       ErrorMessage$ + "r6 = " + Str(ErrorRegister(#PB_OnError_r6)) + Chr(13)
       ErrorMessage$ + "r7 = " + Str(ErrorRegister(#PB_OnError_r7)) + Chr(13)
-      ErrorMessage$ + "Display of registers r8-R31 skipped."       + Chr(13)
  
   CompilerEndSelect
  
   MessageRequester("OnError example", ErrorMessage$)
+  
   End
  
 EndProcedure
@@ -143,9 +142,11 @@ Global fps_update.l = 0
 
 Global program.l
 
+Declare.f Max(a.f,b.f)
 Declare sendHitPacket(id.l,type.l)
 Declare sendBlockActionPacket(action.l, x.l, y.l, z.l)
 Declare sendGrenade(x.f, y.f, z.f, defuse_time.l)
+Declare sendBlockLine(player_id.l,sx.l,sy.l,sz.l,ex.l,ey.l,ez.l)
 Prototype glGenFramebuffers(size.l,ids.l) : Global glGenFramebuffers_.glGenFramebuffers
 Prototype glBindFramebuffer(target.l,id.l) : Global glBindFramebuffer_.glBindFramebuffer
 Prototype glDeleteFramebuffers(size.l,ids.l) : Global glDeleteFramebuffers_.glDeleteFramebuffers
@@ -308,6 +309,12 @@ If ReadPreferenceString("shadows","") = "" : WritePreferenceInteger("shadows",0)
 If ReadPreferenceString("shadow_res","") = "" : WritePreferenceInteger("shadow_res",512) : EndIf
 If ReadPreferenceString("last_server","") = "" : WritePreferenceString("last_server","aos://1379434439:34887:0.75") : EndIf
 If ReadPreferenceString("imitate_openspades","") = "" : WritePreferenceInteger("imitate_openspades",0) : EndIf
+If ReadPreferenceString("font","") = "" : WritePreferenceString("font","FixedSys_Bold_36") : EndIf
+If ReadPreferenceString("use_076","") = "" : WritePreferenceInteger("use_076",0) : EndIf
+If ReadPreferenceString("drunken_cam","") = "" : WritePreferenceInteger("drunken_cam",1) : EndIf
+If ReadPreferenceString("drunken_cam_factor","") = "" : WritePreferenceFloat("drunken_cam_factor",25.0) : EndIf
+If ReadPreferenceString("team_1_skin_prefix","") = "" : WritePreferenceString("team_1_skin_prefix","") : EndIf
+If ReadPreferenceString("team_2_skin_prefix","") = "" : WritePreferenceString("team_2_skin_prefix","") : EndIf
 
 Define aosip$ = ProgramParameter(0)
 If aosip$ = ""
@@ -331,11 +338,6 @@ If own_player_name$ = "Deuce"
   WritePreferenceString("name",own_player_name$)
 EndIf
 
-If Not StringField(aosip$,4,":") = "" And Not Val(StringField(StringField(aosip$,4,":"),2,".")) = 75
-  MessageRequester("Version conflict","This version of Ace of Spades is not supported!")
-  shutdown_game()
-EndIf
-
 If connect(ip$,port) > 0
   If Not IsScreenActive() = 0
     CloseScreen()
@@ -350,10 +352,12 @@ EndIf
 
 openEngineWindow(ReadPreferenceInteger("xres",854),ReadPreferenceInteger("yres",480),(~ReadPreferenceInteger("windowed",1))&1)
 
- glGenFramebuffers_ = wglGetProcAddress_("glGenFramebuffers")
- glBindFramebuffer_ = wglGetProcAddress_("glBindFramebuffer")
- glDeleteFramebuffers_ = wglGetProcAddress_("glDeleteFramebuffers")
- glFramebufferTexture2D_ = wglGetProcAddress_("glFramebufferTexture2D")
+If ReadPreferenceInteger("shadows",0) = 1
+  glGenFramebuffers_ = wglGetProcAddress_("glGenFramebuffers")
+  glBindFramebuffer_ = wglGetProcAddress_("glBindFramebuffer")
+  glDeleteFramebuffers_ = wglGetProcAddress_("glDeleteFramebuffers")
+  glFramebufferTexture2D_ = wglGetProcAddress_("glFramebufferTexture2D")
+EndIf
 ; glCreateProgram_ = wglGetProcAddress_("glCreateProgram")
 ; glCreateShader_ = wglGetProcAddress_("glCreateShader")
 ; glShaderSource_ = wglGetProcAddress_("glShaderSource")
@@ -467,9 +471,9 @@ Until event = #PB_Event_CloseWindow
 
 shutdown_game()
 ; IDE Options = PureBasic 5.31 (Windows - x86)
-; CursorPosition = 460
-; FirstLine = 271
-; Folding = C9
+; CursorPosition = 316
+; FirstLine = 144
+; Folding = A9
 ; EnableThread
 ; EnableXP
 ; EnableOnError
@@ -477,8 +481,9 @@ shutdown_game()
 ; Executable = bos.exe
 ; SubSystem = OpenGL
 ; DisableDebugger
-; EnableCompileCount = 2832
+; EnableCompileCount = 3412
 ; EnableBuildCount = 28
+; EnableExeConstant
 ; IncludeVersionInfo
 ; VersionField13 = bytebitgames@googlemail.com
 ; VersionField14 = http://bytebit.info.tm/

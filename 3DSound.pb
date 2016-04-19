@@ -20,6 +20,12 @@ Global openal_dll.l = -1
 Global sound_supported.l = 0
 Global ctx.l,dev.l
 
+Global empty_mem.l = AllocateMemory(4*3)
+Global position_mem.l = AllocateMemory(4*3)
+Global velocity_mem.l = AllocateMemory(4*3)
+Global orientation_mem.l = AllocateMemory(4*6)
+Global gain_mem.l = AllocateMemory(4)
+
 Procedure loadSoundIntoMemory(name$,id)
   If FileSize(name$)<0
     Debug "Sound "+name$+" could not be found"
@@ -100,20 +106,16 @@ Procedure.l createSoundSource(sound_id.l,x_pos.f,y_pos.f,z_pos.f,range.f)
         ProcedureReturn -1
       EndIf
       
-      Define empty_mem.l = AllocateMemory(4*3)
-      Define position.l = AllocateMemory(4*3)
-      Define velocity.l = AllocateMemory(4*3)
-      
-      PokeF(velocity,0)
-      PokeF(velocity+4,0)
-      PokeF(velocity+8,0)
-      CallCFunction(openal_dll,"alSourcefv",source,4102,velocity) ;4102 = AL_VELOCITY
+      PokeF(velocity_mem,0)
+      PokeF(velocity_mem+4,0)
+      PokeF(velocity_mem+8,0)
+      CallCFunction(openal_dll,"alSourcefv",source,4102,velocity_mem) ;4102 = AL_VELOCITY
       CallCFunction(openal_dll,"alSourcefv",source,4101,empty_mem) ;4101 = AL_DIRECTION
       
-      PokeF(position,x_pos)
-      PokeF(position+4,y_pos)
-      PokeF(position+8,z_pos)
-      CallCFunction(openal_dll,"alSourcefv",source,4100,position) ;4100 = AL_POSITION
+      PokeF(position_mem,x_pos)
+      PokeF(position_mem+4,y_pos)
+      PokeF(position_mem+8,z_pos)
+      CallCFunction(openal_dll,"alSourcefv",source,4100,position_mem) ;4100 = AL_POSITION
       
       CallCFunction(openal_dll,"alSourcei",source,4128,1) ;4128 = AL_REFERENCE_DISTANCE
       CallCFunction(openal_dll,"alSourcei",source,4131,48) ;4131 = AL_MAX_DISTANCE
@@ -121,10 +123,6 @@ Procedure.l createSoundSource(sound_id.l,x_pos.f,y_pos.f,z_pos.f,range.f)
       CallCFunction(openal_dll,"alSourcei", source, 4129, 1) ;4129 = AL_ROLLOFF_FACTOR
       
       CallCFunction(openal_dll,"alSourcePlay",source)
-      
-      FreeMemory(empty_mem)
-      FreeMemory(position)
-      FreeMemory(velocity)
       
       ;Define id = CatchSound(#PB_Any,sound_memory+sound_offset(sound_id),sound_length(sound_id))
       sound_source_x(k) = x_pos
@@ -136,7 +134,7 @@ Procedure.l createSoundSource(sound_id.l,x_pos.f,y_pos.f,z_pos.f,range.f)
       ProcedureReturn k
     EndIf
   Next
-  MessageRequester("Sound error","Could find sound space."+Str(err))
+  MessageRequester("Sound error","Could find sound space. ERROR_"+Str(err))
 EndProcedure
 
 Procedure.l createSoundSourceAtCamera(sound_id)
@@ -155,12 +153,10 @@ Procedure moveSoundSource(id,x_pos.f,y_pos.f,z_pos.f)
   sound_source_x(id) = x_pos
   sound_source_y(id) = y_pos
   sound_source_z(id) = z_pos
-  Define position.l = AllocateMemory(4*3)
-  PokeF(position,x_pos)
-  PokeF(position+4,y_pos)
-  PokeF(position+8,z_pos)
-  CallCFunction(openal_dll,"alSourcefv",sound_source_native_source(id),4100,position) ;4100 = AL_POSITION
-  FreeMemory(position)
+  PokeF(position_mem,x_pos)
+  PokeF(position_mem+4,y_pos)
+  PokeF(position_mem+8,z_pos)
+  CallCFunction(openal_dll,"alSourcefv",sound_source_native_source(id),4100,position_mem) ;4100 = AL_POSITION
 EndProcedure
 
 Procedure.l isSoundSourceStopped(id)
@@ -171,27 +167,21 @@ Procedure update_sounds(x_pos.f,y_pos.f,z_pos.f,vx.f,vy.f,vz.f)
   If sound_supported = 0
     ProcedureReturn
   EndIf
-  Define position.l = AllocateMemory(4*3)
-  Define orientation.l = AllocateMemory(4*6)
-  Define gain.l = AllocateMemory(4)
-  PokeF(position,x_pos)
-  PokeF(position+4,y_pos)
-  PokeF(position+8,z_pos)
-  PokeF(orientation,vx)
-  PokeF(orientation+4,vy)
-  PokeF(orientation+8,vz)
-  PokeF(orientation+12,0.0)
-  PokeF(orientation+16,1.0)
-  PokeF(orientation+20,0.0)
-  CallCFunction(openal_dll,"alListenerfv",4100,position) ;4100 = AL_POSITION
-  CallCFunction(openal_dll,"alListenerfv",4111,orientation) ;4111 = AL_ORIENTATION
-  PokeF(gain,0.1)
-  CallCFunction(openal_dll,"alListenerfv",4106,gain) ;4106 = AL_GAIN
-  FreeMemory(position)
-  FreeMemory(orientation)
-  FreeMemory(gain)
+  PokeF(position_mem,x_pos)
+  PokeF(position_mem+4,y_pos)
+  PokeF(position_mem+8,z_pos)
+  PokeF(orientation_mem,vx)
+  PokeF(orientation_mem+4,vy)
+  PokeF(orientation_mem+8,vz)
+  PokeF(orientation_mem+12,0.0)
+  PokeF(orientation_mem+16,1.0)
+  PokeF(orientation_mem+20,0.0)
+  CallCFunction(openal_dll,"alListenerfv",4100,position_mem) ;4100 = AL_POSITION
+  CallCFunction(openal_dll,"alListenerfv",4111,orientation_mem) ;4111 = AL_ORIENTATION
+  PokeF(gain_mem,0.1)
+  CallCFunction(openal_dll,"alListenerfv",4106,gain_mem) ;4106 = AL_GAIN
   Define k
-  Define state.l
+  Define state.l = 0
   For k=0 To 255
     CallCFunction(openal_dll,"alGetSourcei", sound_source_native_source(k), 4112, @state) ;4112 = AL_SOURCE_STATE
     If sound_source_used(k) = 1 And state = 4116 ;4116 = AL_STOPPED
@@ -206,6 +196,9 @@ Procedure update_sounds(x_pos.f,y_pos.f,z_pos.f,vx.f,vy.f,vz.f)
 EndProcedure
 
 Procedure shutdown_sound()
+  If sound_supported = 0 Or openal_dll = -1
+    ProcedureReturn
+  EndIf
   sound_supported = 0
   CallCFunction(openal_dll,"alcMakeContextCurrent",0)
   CallCFunction(openal_dll,"alcDestroyContext",ctx)
@@ -230,8 +223,6 @@ Procedure init_sound()
     shutdown_sound()
     ProcedureReturn
   EndIf
-  shutdown_sound()
-  ProcedureReturn
   sound_memory = AllocateMemory(8*1024*1024) ;allocate 8MB of ram for all sound files
   loadSoundIntoMemory("wav/footstep1.wav",0)
   loadSoundIntoMemory("wav/footstep2.wav",1)
@@ -272,9 +263,12 @@ Procedure init_sound()
   Next
 EndProcedure
 ; IDE Options = PureBasic 5.31 (Windows - x86)
-; CursorPosition = 259
-; FirstLine = 180
+; CursorPosition = 183
+; FirstLine = 168
 ; Folding = --
 ; EnableUnicode
 ; EnableXP
 ; UseMainFile = main.pb
+; EnableCompileCount = 0
+; EnableBuildCount = 0
+; EnableExeConstant

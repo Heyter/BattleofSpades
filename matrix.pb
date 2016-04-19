@@ -79,8 +79,9 @@ Procedure.l getRow(dest.l, matrix.l,pos.l)
 	ProcedureReturn dest
 EndProcedure
 ; IDE Options = PureBasic 5.31 (Windows - x86)
-; CursorPosition = 42
-; FirstLine = 26
 ; Folding = -
 ; EnableUnicode
 ; EnableXP
+; EnableCompileCount = 0
+; EnableBuildCount = 0
+; EnableExeConstant

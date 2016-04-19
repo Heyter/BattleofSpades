@@ -23,6 +23,8 @@ Global mouse_button_2.l
 Global mouse_button_1_released.l
 Global mouse_button_2_released.l
 
+Global drunken_camera_roll.f = 0.0
+
 Global spectate.l = 1
 Global spectate_stick_to_player.l = 1
 Global spectate_player.l = 0
@@ -36,6 +38,7 @@ Global key_backward.l
 Global key_left.l
 Global key_right.l
 Global key_space.l
+Global key_sneak.l
 Global key_shift.l
 Global key_shift_time.l
 Global key_shift_old.l
@@ -56,7 +59,10 @@ Global texture_background.l
 Global texture_noise.l
 Global texture_indicator.l
 Global texture_intel.l
+Global texture_player.l
 Global texture_vignette.l
+Global texture_command.l
+Global texture_medical.l
 
 Global chat_opened.l = 0
 Global chat_team.l = 0
@@ -76,6 +82,8 @@ Global kv6_playertorso.l
 Global kv6_playerleg.l
 Global kv6_playertorsoc.l
 Global kv6_playerlegc.l
+
+Global screen.l = 0
 
 Global Dim LightPos.f(4)
 LightPos(0) = 512.0
@@ -152,8 +160,7 @@ Procedure openEngineWindow(width, height, fullscreen)
   glBlendFunc_(#GL_SRC_ALPHA, #GL_ONE_MINUS_SRC_ALPHA)
   glEnable_(#GL_BLEND)
   
-  
-  texture_font = loadBMPTextureFile("fonts/FixedSys_Bold_36.bmp")
+  texture_font = loadBMPTextureFile("fonts/"+ReadPreferenceString("font","FixedSys_Bold_36")+".bmp")
   texture_white = loadBMPTextureFile("png/white.png")
   texture_splash = loadPNGTextureFile("png/splash.png")
   texture_target = loadPNGTextureFile("png/target.png")
@@ -161,12 +168,19 @@ Procedure openEngineWindow(width, height, fullscreen)
   texture_noise = loadBMPTextureFile("png/noise.bmp")
   texture_indicator = loadBMPTextureFile("png/indicator.bmp")
   texture_intel = loadBMPTextureFile("png/intel.bmp")
+  texture_player = loadBMPTextureFile("png/player.bmp")
   texture_vignette = loadPNGTextureFile("png/vignette.png")
+  texture_command = loadBMPTextureFile("png/command.bmp")
+  texture_medical = loadBMPTextureFile("png/medical.bmp")
   kv6_semi = loadKV6("kv6/semi.kv6",Red(255))
   kv6_smg = loadKV6("kv6/smg.kv6",Red(255))
   kv6_shotgun = loadKV6("kv6/shotgun.kv6",Red(255))
   kv6_spade = loadKV6("kv6/spade.kv6",Red(255))
   kv6_grenade = loadKV6("kv6/grenade.kv6",Red(255))
+  
+  glMatrixMode_(#GL_TEXTURE)
+  glScalef_(1.0, -1.0, 1.0)
+  glMatrixMode_(#GL_MODELVIEW)
 EndProcedure
 
 Procedure.f engineWindowWidth()
@@ -231,17 +245,42 @@ Procedure stringWidth(h.f, text$)
   ProcedureReturn Len(text$)*0.5*h
 EndProcedure
 
-Procedure subDraw(x2.f,y2.f,x3.f,y3.f)
-  glBegin_(#GL_TRIANGLE_FAN)
-  glTexCoord2f_(0.0,0.0)
-  glVertex3f_(x2, y2, 0.0)
-  glTexCoord2f_(1.0,0.0)
-  glVertex3f_(x3, y2, 0.0)
-  glTexCoord2f_(1.0,1.0)
-  glVertex3f_(x3, y3, 0.0)
-  glTexCoord2f_(0.0,1.0)
-  glVertex3f_(x2, y3, 0.0)
-  glEnd_()
+Procedure subDraw(x2.f,y2.f,x3.f,y3.f,rot.f)
+  If rot = 0.0
+    glBegin_(#GL_TRIANGLE_FAN)
+    glTexCoord2f_(0.0,0.0)
+    glVertex3f_(x2, y2, 0.0)
+    glTexCoord2f_(1.0,0.0)
+    glVertex3f_(x3, y2, 0.0)
+    glTexCoord2f_(1.0,1.0)
+    glVertex3f_(x3, y3, 0.0)
+    glTexCoord2f_(0.0,1.0)
+    glVertex3f_(x2, y3, 0.0)
+    glEnd_()
+  Else
+    rot = Radian(rot)
+    Define ox.f = (x2+x3)/2.0
+    Define oy.f = (y2+y3)/2.0
+    Define top_left_x.f = Cos(rot) * (x2-ox) - Sin(rot) * (y2-oy) + ox
+    Define top_left_y.f = Sin(rot) * (x2-ox) + Cos(rot) * (y2-oy) + oy
+    Define top_right_x.f = Cos(rot) * (x3-ox) - Sin(rot) * (y2-oy) + ox
+    Define top_right_y.f = Sin(rot) * (x3-ox) + Cos(rot) * (y2-oy) + oy
+    Define bottom_right_x.f = Cos(rot) * (x3-ox) - Sin(rot) * (y3-oy) + ox
+    Define bottom_right_y.f = Sin(rot) * (x3-ox) + Cos(rot) * (y3-oy) + oy
+    Define bottom_left_x.f = Cos(rot) * (x2-ox) - Sin(rot) * (y3-oy) + ox
+    Define bottom_left_y.f = Sin(rot) * (x2-ox) + Cos(rot) * (y3-oy) + oy
+    
+    glBegin_(#GL_TRIANGLE_FAN)
+    glTexCoord2f_(0.0,0.0)
+    glVertex3f_(top_left_x, top_left_y, 0.0)
+    glTexCoord2f_(1.0,0.0)
+    glVertex3f_(top_right_x, top_right_y, 0.0)
+    glTexCoord2f_(1.0,1.0)
+    glVertex3f_(bottom_right_x, bottom_right_y, 0.0)
+    glTexCoord2f_(0.0,1.0)
+    glVertex3f_(bottom_left_x, bottom_left_y, 0.0)
+    glEnd_()
+  EndIf
 EndProcedure
 
 Procedure drawRect(x.f,y.f,w.f,h.f)
@@ -258,7 +297,24 @@ Procedure drawRect(x.f,y.f,w.f,h.f)
 	Define y2.f = 1.0-(y_pos*2.0)
 	Define x3.f = x2+(x_s*2.0)
 	Define y3.f = y2-(y_s*2.0)
-	subDraw((x2*0.5+0.5)*engineWindowWidth(),(y2*0.5+0.5)*engineWindowHeight(),(x3*0.5+0.5)*engineWindowWidth(),(y3*0.5+0.5)*engineWindowHeight())
+	subDraw((x2*0.5+0.5)*engineWindowWidth(),(y2*0.5+0.5)*engineWindowHeight(),(x3*0.5+0.5)*engineWindowWidth(),(y3*0.5+0.5)*engineWindowHeight(),0.0)
+EndProcedure
+
+Procedure drawRectRotated(x.f,y.f,w.f,h.f,rot.f)
+  Define x_pos.f = x
+	Define y_pos.f = engineWindowHeight()-y
+	Define x_s.f = w
+	Define y_s.f = -h
+	    
+	x_pos = x_pos/engineWindowWidth()
+	y_pos = y_pos/engineWindowHeight()
+	x_s = x_s/engineWindowWidth()
+	y_s = y_s/engineWindowHeight()
+	Define x2.f = -1.0+(x_pos*2.0)
+	Define y2.f = 1.0-(y_pos*2.0)
+	Define x3.f = x2+(x_s*2.0)
+	Define y3.f = y2-(y_s*2.0)
+	subDraw((x2*0.5+0.5)*engineWindowWidth(),(y2*0.5+0.5)*engineWindowHeight(),(x3*0.5+0.5)*engineWindowWidth(),(y3*0.5+0.5)*engineWindowHeight(),rot)
 EndProcedure
 
 Procedure updatemouse(event)
@@ -320,6 +376,7 @@ Procedure updatekeyboard(event)
   key_ctrl = 0
   key_tab = 0
   key_m = 0
+  key_sneak = 0
   If chat_opened = 0
     If KeyboardPushed(#PB_Key_W)
       key_forward = 1
@@ -333,13 +390,16 @@ Procedure updatekeyboard(event)
     If KeyboardPushed(#PB_Key_D)
       key_right = 1
     EndIf
+    If KeyboardPushed(#PB_Key_V)
+      key_sneak = 1
+    EndIf
     If KeyboardPushed(#PB_Key_Space)
       key_space = 1
       If spectate = 1 And spectate_stick_to_player = 1
         spectate_stick_to_player = 0
-        camera_x = getPlayerX(spectate_player)
-        camera_y = getPlayerY(spectate_player)
-        camera_z = getPlayerZ(spectate_player)
+        camera_x = player_x(spectate_player)
+        camera_y = player_y(spectate_player)
+        camera_z = player_z(spectate_player)
       EndIf
     EndIf
     If KeyboardPushed(#PB_Key_LeftShift) And Not KeyboardPushed(#PB_Key_LeftControl)
@@ -390,7 +450,7 @@ Procedure updatekeyboard(event)
         EndIf
       EndIf
     EndIf
-    If KeyboardReleased(#PB_Key_R) And ElapsedMilliseconds()>action_lock
+    If own_item = 2 And KeyboardReleased(#PB_Key_R) And ElapsedMilliseconds()>action_lock
       action_lock = ElapsedMilliseconds()+reload_times(own_weapon)
       Define left_to_max.l = mag_size(own_weapon)-player_ammo(own_player_id)
       player_ammo(own_player_id) + left_to_max
@@ -497,6 +557,10 @@ Procedure.f vertexAO(side1, side2, corner)
   ProcedureReturn (3 - (isBlockSolid(side1) + isBlockSolid(side2) + isBlockSolid(corner)))/4.0*0.75+0.25
 EndProcedure
 
+Global m_chunk_buffer = AllocateMemory(1024*1024*4)
+Global m_color_buffer = AllocateMemory(1024*1024*4)
+Global m_texture_buffer = AllocateMemory(1024*1024*4)
+
 Procedure drawChunk(chunk_x, chunk_z, shadowed.l)
   DisableDebugger
   Define data_size = 0
@@ -565,13 +629,13 @@ Procedure drawChunk(chunk_x, chunk_z, shadowed.l)
       Next
     Next
     
-    Define chunk_buffer = AllocateMemory(data_size+16*1024)
+    Define chunk_buffer = m_chunk_buffer
     Define chunk_buffer_start = chunk_buffer
-    Define color_buffer = AllocateMemory(data_size+16*1024)
+    Define color_buffer = m_color_buffer
     Define color_buffer_start = color_buffer
-    Define texture_buffer = AllocateMemory(data_size/3*2+16*1024)
+    Define texture_buffer = m_texture_buffer
     Define texture_buffer_start = texture_buffer
-
+    
   StartDrawing(ImageOutput(map_overview_tmp_image))
   Define triangle_count = 0
   For z = chunk_z*8 To chunk_z*8+7
@@ -583,7 +647,7 @@ Procedure drawChunk(chunk_x, chunk_z, shadowed.l)
                 Define green.f = Green(j)/255.0
                 Define blue.f = Blue(j)/255.0
                 Plot(x,z,j)
-                Define shadow.f = 1.0;0.75*(getLightLevel(x,y,z)/4.0)+0.25
+                Define shadow.f = (getLightLevel(x,y,z+1)/4.0)*0.75+0.25
                 If shadowed = 1
                   shadow * 0.5
                 EndIf
@@ -643,6 +707,7 @@ Procedure drawChunk(chunk_x, chunk_z, shadowed.l)
                   EndIf
                   triangle_count + 6
                 EndIf
+                shadow.f = (getLightLevel(x,y,z-1)/4.0)*0.75+0.25 : If shadowed = 1 : shadow * 0.5 : EndIf
                 If getBlockSafe(x,y,z-1) = $FFFFFFFF
                   light_a.f = vertexAO(getBlockSafe(x+1,y,z-1),getBlockSafe(x,y+1,z-1),getBlockSafe(x+1,y+1,z-1))*shadow
                   light_b.f = vertexAO(getBlockSafe(x-1,y,z-1),getBlockSafe(x,y-1,z-1),getBlockSafe(x-1,y-1,z-1))*shadow
@@ -685,6 +750,7 @@ Procedure drawChunk(chunk_x, chunk_z, shadowed.l)
                   EndIf
                   triangle_count + 6
                 EndIf
+                shadow.f = (getLightLevel(x,y-1,z)/4.0)*0.75+0.25 : If shadowed = 1 : shadow * 0.5 : EndIf
                 If getBlockSafe(x,y-1,z) = $FFFFFFFF
                   light_a.f = vertexAO(getBlockSafe(x+1,y-1,z),getBlockSafe(x,y-1,z+1),getBlockSafe(x+1,y-1,z+1))*shadow
                   light_b.f = vertexAO(getBlockSafe(x-1,y-1,z),getBlockSafe(x,y-1,z-1),getBlockSafe(x-1,y-1,z-1))*shadow
@@ -728,6 +794,7 @@ Procedure drawChunk(chunk_x, chunk_z, shadowed.l)
                   EndIf
                   triangle_count + 6
                 EndIf
+                shadow.f = (getLightLevel(x+1,y,z)/4.0)*0.75+0.25 : If shadowed = 1 : shadow * 0.5 : EndIf
                 If getBlockSafe(x+1,y,z) = $FFFFFFFF
                   light_a.f = vertexAO(getBlockSafe(x+1,y+1,z),getBlockSafe(x+1,y,z+1),getBlockSafe(x+1,y+1,z+1))*shadow
                   light_b.f = vertexAO(getBlockSafe(x+1,y-1,z),getBlockSafe(x+1,y,z-1),getBlockSafe(x+1,y-1,z-1))*shadow
@@ -770,6 +837,7 @@ Procedure drawChunk(chunk_x, chunk_z, shadowed.l)
                   EndIf
                   triangle_count + 6
                 EndIf
+                shadow.f = (getLightLevel(x-1,y,z)/4.0)*0.75+0.25 : If shadowed = 1 : shadow * 0.5 : EndIf
                 If getBlockSafe(x-1,y,z) = $FFFFFFFF
                   light_a.f = vertexAO(getBlockSafe(x-1,y+1,z),getBlockSafe(x-1,y,z+1),getBlockSafe(x-1,y+1,z+1))*shadow
                   light_b.f = vertexAO(getBlockSafe(x-1,y-1,z),getBlockSafe(x-1,y,z-1),getBlockSafe(x-1,y-1,z-1))*shadow
@@ -812,6 +880,7 @@ Procedure drawChunk(chunk_x, chunk_z, shadowed.l)
                   EndIf
                   triangle_count + 6
                 EndIf
+                shadow.f = (getLightLevel(x,y+1,z)/4.0)*0.75+0.25 : If shadowed = 1 : shadow * 0.5 : EndIf
                 If getBlockSafe(x,y+1,z) = $FFFFFFFF
                   light_a.f = vertexAO(getBlockSafe(x+1,y+1,z),getBlockSafe(x,y+1,z+1),getBlockSafe(x+1,y+1,z+1))
                   light_b.f = vertexAO(getBlockSafe(x-1,y+1,z),getBlockSafe(x,y+1,z-1),getBlockSafe(x-1,y+1,z-1))
@@ -863,9 +932,8 @@ Procedure drawChunk(chunk_x, chunk_z, shadowed.l)
       	glVertexPointer_(3,#GL_FLOAT,0,chunk_buffer_start)
       	;glTexCoordPointer_(2,#GL_FLOAT,0,texture_buffer_start)
       	glDrawArrays_(#GL_TRIANGLES,0,triangle_count)
-      	FreeMemory(color_buffer_start)
-      	FreeMemory(chunk_buffer_start)
-      	FreeMemory(texture_buffer_start)
+      	;FreeMemory(color_buffer_start)
+      	;FreeMemory(chunk_buffer_start)
       	EnableDebugger
 EndProcedure
 
@@ -878,19 +946,6 @@ Procedure renderGrenade(id.l)
 EndProcedure
 
 Procedure renderplayer(id.l,shadowed.l)
-      If player_display_list_created = 0 And Not game_mode = -1
-        kv6_cp = loadKV6ForTeams("kv6/cp.kv6",RGB(team_1_red,team_1_green,team_1_blue),RGB(team_2_red,team_2_green,team_2_blue))
-        kv6_intel = loadKV6ForTeams("kv6/intel.kv6",RGB(team_1_red,team_1_green,team_1_blue),RGB(team_2_red,team_2_green,team_2_blue))
-        kv6_playerdead = loadKV6ForTeams("kv6/playerdead.kv6",RGB(team_1_red,team_1_green,team_1_blue),RGB(team_2_red,team_2_green,team_2_blue))
-        kv6_playerhead = loadKV6ForTeams("kv6/playerhead.kv6",RGB(team_1_red,team_1_green,team_1_blue),RGB(team_2_red,team_2_green,team_2_blue))
-        kv6_playerarms = loadKV6ForTeams("kv6/playerarms.kv6",RGB(team_1_red,team_1_green,team_1_blue),RGB(team_2_red,team_2_green,team_2_blue))
-        kv6_playertorso = loadKV6ForTeams("kv6/playertorso.kv6",RGB(team_1_red,team_1_green,team_1_blue),RGB(team_2_red,team_2_green,team_2_blue))
-        kv6_playerleg = loadKV6ForTeams("kv6/playerleg.kv6",RGB(team_1_red,team_1_green,team_1_blue),RGB(team_2_red,team_2_green,team_2_blue))
-        
-        kv6_playertorsoc = loadKV6ForTeams("kv6/playertorsoc.kv6",RGB(team_1_red,team_1_green,team_1_blue),RGB(team_2_red,team_2_green,team_2_blue))
-        kv6_playerlegc = loadKV6ForTeams("kv6/playerlegc.kv6",RGB(team_1_red,team_1_green,team_1_blue),RGB(team_2_red,team_2_green,team_2_blue))
-        player_display_list_created = 1
-      EndIf
       
       Define shadow_factor.f = 1.0
       If shadowed = 1
@@ -931,12 +986,14 @@ Procedure renderplayer(id.l,shadowed.l)
       glTranslatef_(1.0*0.12,-9.0*0.12,-1.0*0.12)
       glRotatef_(-Degree(ATan2(getPlayerAngleX(id),getPlayerAngleZ(id))),0.0,1.0,0.0)
       If Not id = own_player_id
-        ;glBegin_(#GL_QUADS)
-        ;rendercubeat(-2.0*0.12,0.0,-4.0*0.12,4.0*0.12,9.0*0.12,8.0*0.12) ;torso
-        ;glEnd_()
         glRotatef_(90.0,0.0,1.0,0.0)
         glTranslatef_(-0.5,-0.125,-0.25)
         glScalef_(0.5,0.5,0.5)
+        If team_1_intel_player = id Or team_2_intel_player = id
+          glTranslatef_(-0.25,0.0,-0.75)
+          glCallList_(kv6_intel+((~teamlist(id))&1))
+          glTranslatef_(0.25,0.0,0.75)
+        EndIf
         If player_keystates2(id) & #KEY_CROUCH
           glTranslatef_(0.0,0.5-0.125,-1.0)
           glCallList_(kv6_playertorsoc+teamlist(id))
@@ -954,11 +1011,6 @@ Procedure renderplayer(id.l,shadowed.l)
         glRotatef_(Sin(ElapsedMilliseconds()*0.005)*25.0,0.0,0.0,1.0)
       EndIf
       If Not id = own_player_id
-        ;glBegin_(#GL_QUADS)
-        ;rendercubeat(-0.5*0.12,-8.0*0.12,0.75*0.12,3.0*0.12,9.0*0.12,3.0*0.12) ;leg left
-        ;glColor3f(0.22*shadow_factor,0.16*shadow_factor,0.11*shadow_factor)
-        ;rendercubeat(-0.5*0.12,-11.0*0.12,0.75*0.12,5.0*0.12,3.0*0.12,3.0*0.12) ;boot left
-        ;glEnd_()
         glRotatef_(90.0,0.0,1.0,0.0)
         glTranslatef_(-0.375,-1.5,-0.125)
         glScalef_(0.5,0.5,0.5)
@@ -986,11 +1038,6 @@ Procedure renderplayer(id.l,shadowed.l)
         glRotatef_(Sin(-ElapsedMilliseconds()*0.005)*25.0,0.0,0.0,1.0)
       EndIf
       If Not id = own_player_id
-        ;glBegin_(#GL_QUADS)
-        ;rendercubeat(-0.5*0.12,-8.0*0.12,4.75*0.12,3.0*0.12,9.0*0.12,3.0*0.12) ;leg right
-        ;glColor3f(0.22*shadow_factor,0.16*shadow_factor,0.11*shadow_factor)
-        ;rendercubeat(-0.5*0.12,-11.0*0.12,4.75*0.12,5.0*0.12,3.0*0.12,3.0*0.12) ;boot right
-        ;glEnd_()
         glRotatef_(90.0,0.0,1.0,0.0)
         glTranslatef_(-1.0,-1.5,-0.125)
         glScalef_(0.5,0.5,0.5)
@@ -1020,22 +1067,6 @@ Procedure renderplayer(id.l,shadowed.l)
         glTranslatef_(-0.375,-0.125,-0.375)
         glScalef_(0.5,0.5,0.5)
         glCallList_(kv6_playerhead+teamlist(id))
-        ;glBegin_(#GL_QUADS)
-        ;glColor3f(0.99*shadow_factor,0.75*shadow_factor,0.5*shadow_factor)
-        ;rendercubeat(-3.0*0.12,0.0,-3.0*0.12,6.0*0.12,6.0*0.12,6.0*0.12) ;head
-        ;glColor3f(0.03125*shadow_factor,0.03125*shadow_factor,0.03125*shadow_factor)
-        ;rendercubeat(0.25*0.12,-0.125*0.12,-3.125*0.12,1.0*0.12,3.125*0.12,6.25*0.12) ;helmet (string)
-        ;rendercubeat(2.125*0.12,2.0*0.12,1.0*0.12,1.0*0.12,1.0*0.12,1.0*0.12) ;eye left
-        ;rendercubeat(2.125*0.12,2.0*0.12,-2.0*0.12,1.0*0.12,1.0*0.12,1.0*0.12) ;eye right
-        ;If teamlist(id) = 0
-          ;glColor3f(team_1_red/255.0*shadow_factor,team_1_green/255.0*shadow_factor,team_1_blue/255.0*shadow_factor)
-        ;EndIf
-        ;If teamlist(id) = 1
-          ;glColor3f(team_2_red/255.0*shadow_factor,team_2_green/255.0*shadow_factor,team_2_blue/255.0*shadow_factor)
-        ;EndIf
-        ;rendercubeat(-3.25*0.12,3.0*0.12,-3.25*0.12,6.5*0.12,3.25*0.12,6.5*0.12) ;helmet (top)
-        ;rendercubeat(-3.25*0.12,2.0*0.12,-3.25*0.12,3.5*0.12,1.0*0.12,6.5*0.12) ;helmet (bottom)
-        ;glEnd_()
       EndIf
       glPopMatrix_()
       glRotatef_(-(Degree(ACos(getPlayerAngleY(id)/Sqr(getPlayerAngleX(id)*getPlayerAngleX(id)+getPlayerAngleY(id)*getPlayerAngleY(id)+getPlayerAngleZ(id)*getPlayerAngleZ(id))))-90.0)-offset,0.0,0.0,1.0)
@@ -1045,35 +1076,8 @@ Procedure renderplayer(id.l,shadowed.l)
       glScalef_(0.5,0.5,0.5)
       glCallList_(kv6_playerarms+teamlist(id))
       
-      ;glRotatef_(-45.0,0.0,0.0,1.0)
-      ;glBegin_(#GL_QUADS)
-      ;rendercubeat(0.5*0.12,-1.5*0.12,4.0*0.12,5.0*0.12,2.0*0.12,2.0*0.12) ;arm left (first part)
-      ;glEnd_()
-      ;glRotatef_(90.0,0.0,0.0,1.0)
-      ;glBegin_(#GL_QUADS)
-      ;rendercubeat(-1.5*0.12,-7.5*0.12,4.0*0.12,4.0*0.12,2.0*0.12,2.0*0.12) ;arm left (second part)
-      ;glColor3f(0.99*shadow_factor,0.75*shadow_factor,0.5*shadow_factor)
-      ;rendercubeat(2.5*0.12,-7.5*0.12,4.0*0.12,2.0*0.12,2.0*0.12,2.0*0.12) ;arm left (hand)
-      ;glEnd_()
-      ;glRotatef_(-45.0,0.0,0.0,1.0)
-      
-      ;If teamlist(id) = 0
-        ;glColor3f(team_1_red/255.0*shadow_factor,team_1_green/255.0*shadow_factor,team_1_blue/255.0*shadow_factor)
-      ;EndIf
-      ;If teamlist(id) = 1
-        ;glColor3f(team_2_red/255.0*shadow_factor,team_2_green/255.0*shadow_factor,team_2_blue/255.0*shadow_factor)
-      ;EndIf
-      
-      ;glRotatef_(-45.0,0.0,1.0,0.0)
-      ;glBegin_(#GL_QUADS)
-      ;rendercubeat(-4.0*0.12,-2.5*0.12,-4.5*0.12,11.0*0.12,2.0*0.12,2.0*0.12) ;arm right
-      ;glColor3f(0.99*shadow_factor,0.75*shadow_factor,0.5*shadow_factor)
-      ;rendercubeat(7.0*0.12,-2.5*0.12,-4.5*0.12,2.0*0.12,2.0*0.12,2.0*0.12) ;arm right (hand)
-      ;glEnd_()
-      ;glRotatef_(45.0,0.0,1.0,0.0)
-      
       If player_item(id) = 0
-        glTranslatef_(-0.7,-1.2,0.9)
+        glTranslatef_(0.25,-0.75+0.125,2.125)
         glScalef_(0.5,0.5,0.5)
         glCallList_(kv6_spade)
       EndIf
@@ -1101,7 +1105,7 @@ Procedure renderplayer(id.l,shadowed.l)
         EndIf
       EndIf
       If player_item(id) = 3
-        glTranslatef_(-0.7,-0.5,0.7)
+        glTranslatef_(0.25,1.0,2.0-0.125)
         glScalef_(0.5,0.5,0.5)
         glCallList_(kv6_grenade)
       EndIf
@@ -1124,7 +1128,10 @@ Global cameraProjectionMatrix.l = AllocateMemory(16*4)
 Global lightProjectionMatrix.l = AllocateMemory(16*4)
 Global cameraViewMatrix.l = AllocateMemory(16*4)
 Global lightViewMatrix.l = AllocateMemory(16*4)
-Global biasMatrix.l = createMatrix(0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.5, 0.5, 0.5, 1.0)
+Global biasMatrix.l = createMatrix(0.5, 0.0, 0.0, 0.0,
+                                    0.0, 0.5, 0.0, 0.0,
+                                    0.0, 0.0, 0.5, 0.0,
+                                    0.5, 0.5, 0.5, 1.0)
 Global textureMatrix.l = AllocateMemory(16*4)
 Global vector_a.l = createVector(0.0,0.0,0.0,0.0)
 Global vector_b.l = createVector(0.0,0.0,0.0,0.0)
@@ -1173,6 +1180,21 @@ Procedure updateEngineWindow(event, dt.f)
     shadow_map_size = ReadPreferenceInteger("shadow_res",512)
   EndIf
   
+  If player_display_list_created = 0 And Not game_mode = -1
+    Define a_col.l = RGB(team_1_red,team_1_green,team_1_blue)
+    Define b_col.l = RGB(team_2_red,team_2_green,team_2_blue)
+    kv6_cp = loadKV6ForTeams("cp.kv6",a_col,b_col)
+    kv6_intel = loadKV6ForTeams("intel.kv6",a_col,b_col)
+    kv6_playerdead = loadKV6ForTeams("playerdead.kv6",a_col,b_col)
+    kv6_playerhead = loadKV6ForTeams("playerhead.kv6",a_col,b_col)
+    kv6_playerarms = loadKV6ForTeams("playerarms.kv6",a_col,b_col)
+    kv6_playertorso = loadKV6ForTeams("playertorso.kv6",a_col,b_col)
+    kv6_playerleg = loadKV6ForTeams("playerleg.kv6",a_col,b_col)
+    kv6_playertorsoc = loadKV6ForTeams("playertorsoc.kv6",a_col,b_col)
+    kv6_playerlegc = loadKV6ForTeams("playerlegc.kv6",a_col,b_col)
+    player_display_list_created = 1
+  EndIf
+  
   updatemouse(event)
   updatekeyboard(event)
   
@@ -1203,7 +1225,7 @@ Procedure updateEngineWindow(event, dt.f)
     Define index.l = spectate_player+1
     Define stop.l = 0
     Repeat
-      If Not player_y(index) = 64.0
+      If player_connected(index) = 1 And teamlist(index) > -1 And teamlist(index) < 2
         Break
       EndIf
       index + 1
@@ -1225,7 +1247,7 @@ Procedure updateEngineWindow(event, dt.f)
     EndIf
     stop.l = 0
     Repeat
-      If Not player_y(index) = 64.0
+      If player_connected(index) = 1 And teamlist(index) > -1 And teamlist(index) < 2
         Break
       EndIf
       index - 1
@@ -1241,16 +1263,25 @@ Procedure updateEngineWindow(event, dt.f)
     spectate_player = index
   EndIf
   
-  camera_rot_x + mouse_delta_x*0.005
-  camera_rot_y - mouse_delta_y*0.005
+  If escape_menu = 0
+    Define last_camera_rot_x.f = camera_rot_x
+    camera_rot_x + mouse_delta_x*0.005
+    camera_rot_y - mouse_delta_y*0.005
     
-  If camera_rot_y<=0.1
-    camera_rot_y = 0.1
+    drunken_camera_roll + (last_camera_rot_x-camera_rot_x)*ReadPreferenceFloat("drunken_cam_factor",25.0)
+    If Abs(drunken_camera_roll) <= 0.1
+      drunken_camera_roll = 0.0
+    Else
+      drunken_camera_roll * Pow(0.1,dt)
+    EndIf
+      
+    If camera_rot_y<=0.1
+      camera_rot_y = 0.1
+    EndIf
+    If camera_rot_y>=3.1
+      camera_rot_y = 3.1
+    EndIf
   EndIf
-  If camera_rot_y>=3.1
-    camera_rot_y = 3.1
-  EndIf
-  
 
   Define time = ElapsedMilliseconds()
   If spectate = 1
@@ -1311,11 +1342,11 @@ Procedure updateEngineWindow(event, dt.f)
   FogColor(3) = 1.0
   glFogfv_(#GL_FOG_COLOR, FogColor())
   glLoadIdentity_()
-  ;glLightfv_(#GL_LIGHT0,#GL_POSITION,LightPos())
-  ;glLightfv_(#GL_LIGHT1,#GL_POSITION,LightPos2())
-  ;Math.sin(a)*Math.sin(b)
-  ;Math.cos(b)
-  ;Math.cos(a)*Math.sin(b)
+  
+  If ReadPreferenceInteger("drunken_cam",0) = 1
+    glRotatef_(drunken_camera_roll,0.0,0.0,1.0)
+  EndIf
+  
   If spectate = 1
     If spectate_stick_to_player = 1
       Define k
@@ -1324,9 +1355,9 @@ Procedure updateEngineWindow(event, dt.f)
         Define look_y.f = getPlayerY(spectate_player)+k*0.01*Cos(camera_rot_y)
         Define look_z.f = getPlayerZ(spectate_player)+k*0.01*Cos(camera_rot_x)*Sin(camera_rot_y)
         If Not getBlockSafe(look_x,look_y,look_z) = $FFFFFFFF
-          look_x.f = getPlayerX(spectate_player)+(k*0.01)*Sin(camera_rot_x)*Sin(camera_rot_y)
-          look_y.f = getPlayerY(spectate_player)+(k*0.01)*Cos(camera_rot_y)
-          look_z.f = getPlayerZ(spectate_player)+(k*0.01)*Cos(camera_rot_x)*Sin(camera_rot_y)
+          look_x.f = getPlayerX(spectate_player)+k*0.01*Sin(camera_rot_x)*Sin(camera_rot_y)
+          look_y.f = getPlayerY(spectate_player)+k*0.01*Cos(camera_rot_y)
+          look_z.f = getPlayerZ(spectate_player)+k*0.01*Cos(camera_rot_x)*Sin(camera_rot_y)
           Break
         EndIf
       Next
@@ -1341,6 +1372,7 @@ Procedure updateEngineWindow(event, dt.f)
       look_x.f = camera_x+100.0*Sin(camera_rot_x)*Sin(camera_rot_y)
       look_y.f = camera_y+100.0*Cos(camera_rot_y)
       look_z.f = camera_z+100.0*Cos(camera_rot_x)*Sin(camera_rot_y)
+      
       update_sounds(camera_x,camera_y,camera_z,Sin(camera_rot_x)*Sin(camera_rot_y),Cos(camera_rot_y),Cos(camera_rot_x)*Sin(camera_rot_y))
       gluLookAt_(camera_x,camera_y,camera_z,look_x,look_y,look_z,0.0,1.0,0.0)
       glPushMatrix_()
@@ -1360,7 +1392,7 @@ Procedure updateEngineWindow(event, dt.f)
     
     If own_dead = 0
       positiondata(player_x(own_player_id)+0.5,player_eye_y(own_player_id)-0.4,player_z(own_player_id)+0.5)
-      inputdata(key_forward,key_backward,key_left,key_right,key_shift,key_ctrl,key_space)
+      inputdata(key_forward,key_backward,key_left,key_right,key_shift,key_ctrl,key_sneak,key_space)
       If own_item = 0 Or own_item = 1 Or own_item = 3
         weaponinput(mouse_button_1,mouse_button_2)
       EndIf
@@ -1394,6 +1426,9 @@ Procedure updateEngineWindow(event, dt.f)
       If key_ctrl = 1
         key_states + 32
       EndIf
+      If key_sneak = 1
+        key_states + 64
+      EndIf
       If key_shift = 1
         key_states + 128
       EndIf
@@ -1409,61 +1444,69 @@ Procedure updateEngineWindow(event, dt.f)
   EndIf
   glGetFloatv_(#GL_MODELVIEW_MATRIX, cameraViewMatrix)
   
-  If Not own_player_id = -1
-    Define offset.f = 0.0
-    faced_player = -1
-    faced_player_part = -1
-    faced_block_x = -1
-    faced_block_y = -1
-    faced_block_z = -1
-    build_block_x = -1
-    build_block_y = -1
-    build_block_z = -1
-    object_distance = 0.0
-    Repeat
-      look_x.f = player_x(own_player_id)+offset*Sin(camera_rot_x)*Sin(camera_rot_y)+0.5
-      look_y.f = player_eye_y(own_player_id)+offset*Cos(camera_rot_y)+0.75
-      look_z.f = player_z(own_player_id)+offset*Cos(camera_rot_x)*Sin(camera_rot_y)+0.5
-      If isBlockSolid(getBlockSafe(Round(look_x,#PB_Round_Down),Round(look_y,#PB_Round_Down),Round(look_z,#PB_Round_Down)))
-        faced_block_x = Round(look_x,#PB_Round_Down)
-        faced_block_y = Round(look_y,#PB_Round_Down)
-        faced_block_z = Round(look_z,#PB_Round_Down)
-        look_x = player_x(own_player_id)+(offset-0.2)*Sin(camera_rot_x)*Sin(camera_rot_y)+0.5
-        look_y = player_eye_y(own_player_id)+(offset-0.2)*Cos(camera_rot_y)+0.75
-        look_z = player_z(own_player_id)+(offset-0.2)*Cos(camera_rot_x)*Sin(camera_rot_y)+0.5
-        build_block_x = Round(look_x,#PB_Round_Down)
-        build_block_y = Round(look_y,#PB_Round_Down)
-        build_block_z = Round(look_z,#PB_Round_Down)
-        Break
-      EndIf
-      For k=0 To 31
-        If player_y(k) < 64.0 And teamlist(k) > -1 And Not k = own_player_id
-          If Sqr((player_x(k)-look_x)*(player_x(k)-look_x)+(player_y(k)-look_y)*(player_y(k)-look_y)+(player_z(k)-look_z)*(player_z(k)-look_z))<0.5
-            faced_player = k
-            faced_player_part = 0 ;torso
-            Break
-          EndIf
-          If Sqr((player_x(k)-look_x)*(player_x(k)-look_x)+(player_y(k)+1.0-look_y)*(player_y(k)+1.0-look_y)+(player_z(k)-look_z)*(player_z(k)-look_z))<0.5
-            faced_player = k
-            faced_player_part = 1 ;head
-            Break
-          EndIf
-          If Sqr((player_x(k)-look_x)*(player_x(k)-look_x)+(player_y(k)-1.0-look_y)*(player_y(k)-1.0-look_y)+(player_z(k)-look_z)*(player_z(k)-look_z))<0.5
-            faced_player = k
-            faced_player_part = 3 ;legs
-            Break
-          EndIf
-        EndIf
-      Next  
-      offset + 0.2
-    Until offset >= 128.0 Or Not faced_player = -1
-    object_distance = offset
+  Define offset.f = 0.0
+  faced_player = -1
+  faced_player_part = -1
+  faced_block_x = -1
+  faced_block_y = -1
+  faced_block_z = -1
+  build_block_x = -1
+  build_block_y = -1
+  build_block_z = -1
+  object_distance = 0.0
+  Define x_offset.f = 0.0
+  Define y_offset.f = 0.0
+  Define z_offset.f = 0.0
+  If spectate = 0
+    x_offset = 0.5
+    z_offset = 0.5
+    y_offset = 0.75
   EndIf
+  Repeat
+    look_x.f = cameraPosX()+offset*Sin(camera_rot_x)*Sin(camera_rot_y)+x_offset
+    look_y.f = cameraPosY()-2.0+offset*Cos(camera_rot_y)+y_offset
+    look_z.f = cameraPosZ()+offset*Cos(camera_rot_x)*Sin(camera_rot_y)+z_offset
+    If isBlockSolid(getBlockSafe(Round(look_x,#PB_Round_Down),Round(look_y,#PB_Round_Down),Round(look_z,#PB_Round_Down)))
+      faced_block_x = Round(look_x,#PB_Round_Down)
+      faced_block_y = Round(look_y,#PB_Round_Down)
+      faced_block_z = Round(look_z,#PB_Round_Down)
+      look_x = cameraPosX()+(offset-0.2)*Sin(camera_rot_x)*Sin(camera_rot_y)+x_offset
+      look_y = cameraPosY()-2.0+(offset-0.2)*Cos(camera_rot_y)+y_offset
+      look_z = cameraPosZ()+(offset-0.2)*Cos(camera_rot_x)*Sin(camera_rot_y)+z_offset
+      build_block_x = Round(look_x,#PB_Round_Down)
+      build_block_y = Round(look_y,#PB_Round_Down)
+      build_block_z = Round(look_z,#PB_Round_Down)
+      Break
+    EndIf
+    For k=0 To 31
+      If player_connected(k) = 1 And teamlist(k) > -1 And Not k = own_player_id
+        If Sqr((player_x(k)-look_x)*(player_x(k)-look_x)+(player_y(k)-look_y)*(player_y(k)-look_y)+(player_z(k)-look_z)*(player_z(k)-look_z))<0.5
+          faced_player = k
+          faced_player_part = 0 ;torso
+          Break
+        EndIf
+        If Sqr((player_x(k)-look_x)*(player_x(k)-look_x)+(player_y(k)+1.0-look_y)*(player_y(k)+1.0-look_y)+(player_z(k)-look_z)*(player_z(k)-look_z))<0.5
+          faced_player = k
+          faced_player_part = 1 ;head
+          Break
+        EndIf
+        If Sqr((player_x(k)-look_x)*(player_x(k)-look_x)+(player_y(k)-1.0-look_y)*(player_y(k)-1.0-look_y)+(player_z(k)-look_z)*(player_z(k)-look_z))<0.5
+          faced_player = k
+          faced_player_part = 3 ;legs
+          Break
+        EndIf
+      EndIf
+    Next  
+    offset + 0.2
+  Until offset >= 128.0 Or Not faced_player = -1
+  object_distance = offset
     
   If ReadPreferenceInteger("shadows",0) = 1
+    glMatrixMode_(#GL_TEXTURE)
+    glScalef_(1.0, -1.0, 1.0)
+    glMatrixMode_(#GL_MODELVIEW)
     glPushMatrix_()
     glLoadIdentity_()
-    ;gluPerspective_(80.0, 1.0, 1.0, 128.0)
     glOrtho_(-64.0,64.0,-64.0,64.0,1.0,128.0)
     glGetFloatv_(#GL_MODELVIEW_MATRIX, lightProjectionMatrix)
     glPopMatrix_()
@@ -1565,6 +1608,9 @@ Procedure updateEngineWindow(event, dt.f)
     glDisable_(#GL_TEXTURE_GEN_R)
     glDisable_(#GL_TEXTURE_GEN_Q)
     glDisable_(#GL_ALPHA_TEST)
+    glMatrixMode_(#GL_TEXTURE)
+    glScalef_(1.0, -1.0, 1.0)
+    glMatrixMode_(#GL_MODELVIEW)
   Else
     drawScene(dt,0)
   EndIf
@@ -1643,7 +1689,7 @@ Procedure updateEngineWindow(event, dt.f)
     updatePlayer(own_player_id,dt)
   EndIf
   
-  If player_dead(own_player_id) = 1 And (ElapsedMilliseconds()-player_death_time(own_player_id))>1000 And player_secounds_till_respawn(own_player_id) > 0
+  If Not own_player_id = -1 And player_dead(own_player_id) = 1 And (ElapsedMilliseconds()-player_death_time(own_player_id))>1000 And player_secounds_till_respawn(own_player_id) > 0
     player_secounds_till_respawn(own_player_id) - 1
     If player_secounds_till_respawn(own_player_id) = 0
       createSoundSourceAtCamera(29)
@@ -1681,42 +1727,70 @@ Procedure updateEngineWindow(event, dt.f)
     drawString(engineWindowWidth()-stringWidth(engineWindowHeight()*0.08,team_2_name.s)-engineWindowWidth()*0.15,engineWindowHeight()*0.11,engineWindowHeight()*0.08,team_2_name.s)
     drawString(engineWindowWidth()*0.65,engineWindowHeight()*0.11,engineWindowHeight()*0.08,Str(team_2_score))
     
-    index = 0
+    Structure Player
+      name$
+      kills.l
+      id.l
+    EndStructure
+    
+    NewList Team.Player()
+    
     For k = 0 To 31
       If player_connected(k) = 1 And teamlist(k) = 0
-        If player_dead(k)
-          glColor3f_(1.0,0.2,0.2)
-        Else
-          glColor3f_(1.0,1.0,1.0)
-        EndIf
-        If k = team_1_intel_player Or k = team_2_intel_player
-          glBindTexture_(#GL_TEXTURE_2D,texture_intel)
-          drawRect(engineWindowWidth()*0.125-engineWindowHeight()*0.06,engineWindowHeight()*0.25+engineWindowHeight()*0.04*index,engineWindowHeight()*0.04,engineWindowHeight()*0.04)
-        EndIf
-        drawString(engineWindowWidth()*0.125,engineWindowHeight()*0.25+engineWindowHeight()*0.04*index,engineWindowHeight()*0.04,namelist(k))
-        drawString(engineWindowWidth()*0.3,engineWindowHeight()*0.25+engineWindowHeight()*0.04*index,engineWindowHeight()*0.04,"#"+Str(k))
-        drawString(engineWindowWidth()*0.35,engineWindowHeight()*0.25+engineWindowHeight()*0.04*index,engineWindowHeight()*0.04,Str(player_kills(k)))
-        index + 1
+        AddElement(Team())
+        Team()\name$ = namelist(k)
+        Team()\kills = player_kills(k)
+        Team()\id = k
       EndIf
     Next
     
-    index = 0
+    SortStructuredList(Team(),#PB_Sort_Descending,OffsetOf(Player\kills),#PB_Long)
+    
+    Define index.l = 0
+    ForEach Team()
+      If player_dead(Team()\id)
+        glColor3f_(1.0,0.2,0.2)
+      Else
+        glColor3f_(1.0,1.0,1.0)
+      EndIf
+      If Team()\id = team_1_intel_player Or Team()\id = team_2_intel_player
+        glBindTexture_(#GL_TEXTURE_2D,texture_intel)
+        drawRect(engineWindowWidth()*0.125-engineWindowHeight()*0.06,engineWindowHeight()*0.25+engineWindowHeight()*0.04*index,engineWindowHeight()*0.04,engineWindowHeight()*0.04)
+      EndIf
+      drawString(engineWindowWidth()*0.125,engineWindowHeight()*0.25+engineWindowHeight()*0.04*index,engineWindowHeight()*0.04,Team()\name$)
+      drawString(engineWindowWidth()*0.3,engineWindowHeight()*0.25+engineWindowHeight()*0.04*index,engineWindowHeight()*0.04,"#"+Str(Team()\id))
+      drawString(engineWindowWidth()*0.35,engineWindowHeight()*0.25+engineWindowHeight()*0.04*index,engineWindowHeight()*0.04,Str(Team()\kills))
+      index + 1
+    Next
+    
+    ClearList(Team())
+    
     For k = 0 To 31
       If player_connected(k) = 1 And teamlist(k) = 1
-        If player_dead(k)
-          glColor3f_(1.0,0.2,0.2)
-        Else
-          glColor3f_(1.0,1.0,1.0)
-        EndIf
-        If k = team_1_intel_player Or k = team_2_intel_player
-          glBindTexture_(#GL_TEXTURE_2D,texture_intel)
-          drawRect(engineWindowWidth()*0.625-engineWindowHeight()*0.06,engineWindowHeight()*0.25+engineWindowHeight()*0.04*index,engineWindowHeight()*0.04,engineWindowHeight()*0.04)
-        EndIf
-        drawString(engineWindowWidth()*0.625,engineWindowHeight()*0.25+engineWindowHeight()*0.04*index,engineWindowHeight()*0.04,namelist(k))
-        drawString(engineWindowWidth()*0.8,engineWindowHeight()*0.25+engineWindowHeight()*0.04*index,engineWindowHeight()*0.04,"#"+Str(k))
-        drawString(engineWindowWidth()*0.85,engineWindowHeight()*0.25+engineWindowHeight()*0.04*index,engineWindowHeight()*0.04,Str(player_kills(k)))
-        index + 1
+        AddElement(Team())
+        Team()\name$ = namelist(k)
+        Team()\kills = player_kills(k)
+        Team()\id = k
       EndIf
+    Next
+    
+    SortStructuredList(Team(),#PB_Sort_Descending,OffsetOf(Player\kills),#PB_Long)
+    
+    index = 0
+    ForEach Team()
+      If player_dead(Team()\id)
+        glColor3f_(1.0,0.2,0.2)
+      Else
+        glColor3f_(1.0,1.0,1.0)
+      EndIf
+      If Team()\id = team_1_intel_player Or Team()\id = team_2_intel_player
+        glBindTexture_(#GL_TEXTURE_2D,texture_intel)
+        drawRect(engineWindowWidth()*0.625-engineWindowHeight()*0.06,engineWindowHeight()*0.25+engineWindowHeight()*0.04*index,engineWindowHeight()*0.04,engineWindowHeight()*0.04)
+      EndIf
+      drawString(engineWindowWidth()*0.625,engineWindowHeight()*0.25+engineWindowHeight()*0.04*index,engineWindowHeight()*0.04,Team()\name$)
+      drawString(engineWindowWidth()*0.8,engineWindowHeight()*0.25+engineWindowHeight()*0.04*index,engineWindowHeight()*0.04,"#"+Str(Team()\id))
+      drawString(engineWindowWidth()*0.85,engineWindowHeight()*0.25+engineWindowHeight()*0.04*index,engineWindowHeight()*0.04,Str(Team()\kills))
+      index + 1
     Next
     
     glColor3f_(1.0,1.0,1.0)
@@ -1736,9 +1810,11 @@ Procedure updateEngineWindow(event, dt.f)
   If Not hide_hud
     glColor3f_(1.0,1.0,1.0)
     
-    glBindTexture_(#GL_TEXTURE_2D,texture_target)
-    drawRect((engineWindowWidth()-engineWindowHeight()*0.015)/2,(engineWindowHeight()-engineWindowHeight()*0.015)/2,engineWindowWidth()*0.015,engineWindowWidth()*0.015)
-    glBindTexture_(#GL_TEXTURE_2D,0)
+    If spectate_stick_to_player = 0 Or spectate = 0
+      glBindTexture_(#GL_TEXTURE_2D,texture_target)
+      drawRect((engineWindowWidth()-engineWindowHeight()*0.015)/2,(engineWindowHeight()-engineWindowHeight()*0.015)/2,engineWindowWidth()*0.015,engineWindowWidth()*0.015)
+      glBindTexture_(#GL_TEXTURE_2D,0)
+    EndIf
     
     index = 0
     For k = 0 To 15
@@ -1761,19 +1837,19 @@ Procedure updateEngineWindow(event, dt.f)
       EndIf
     Next
     
-    ;If own_team = -1 Or own_team = teamlist(faced_player)
+    If own_team = -1 Or own_team = teamlist(faced_player)
       Define s$ = ""
       If Not faced_player = -1
         s$ = namelist(faced_player)+" #"+Str(faced_player)
       EndIf
-      If own_team = -1 And spectate_stick_to_player = 1
+      If spectate_stick_to_player = 1
         s$ = namelist(spectate_player)+" #"+Str(spectate_player)
       EndIf
       If Not s$ = ""
         glColor3f_(1.0,1.0,1.0)
-        drawString((engineWindowWidth()-stringWidth(engineWindowHeight()*0.04,s$))*0.5,engineWindowHeight()-engineWindowHeight()*0.08,engineWindowHeight()*0.04,s$)
+        drawString((engineWindowWidth()-stringWidth(engineWindowHeight()*0.04,s$))*0.5,engineWindowHeight()-engineWindowHeight()*0.12,engineWindowHeight()*0.04,s$)
       EndIf
-      ;EndIf
+     EndIf
     
     For k=0 To 15
       If ElapsedMilliseconds()-chat_message_time(k)<10000 Or chat_opened = 1
@@ -1820,6 +1896,50 @@ Procedure updateEngineWindow(event, dt.f)
       glBindTexture_(#GL_TEXTURE_2D,map_texture_id)
       If key_m = 1
         drawRect((engineWindowWidth()-engineWindowHeight()*0.8)*0.5,engineWindowHeight()*0.1,engineWindowHeight()*0.8,engineWindowHeight()*0.8)
+        If game_mode = #GAMEMODE_TC
+          glBindTexture_(#GL_TEXTURE_2D,texture_command)
+          Define k
+          For k=0 To tent_count-1
+            If tent_team(k) = 2
+              glColor3f_(1.0,1.0,1.0)
+            EndIf
+            If tent_team(k) = 0
+              glColor3f_(team_1_red/255.0,team_1_green/255.0,team_1_blue/255.0)
+            EndIf
+            If tent_team(k) = 1
+              glColor3f_(team_2_red/255.0,team_2_green/255.0,team_2_blue/255.0)
+            EndIf
+            drawRect((engineWindowWidth()-engineWindowHeight()*0.8)*0.5+engineWindowHeight()*0.8/512.0*tent_x(k)-engineWindowHeight()*0.01,engineWindowHeight()*0.1+engineWindowHeight()*0.8/512.0*tent_z(k)-engineWindowHeight()*0.01,engineWindowHeight()*0.02,engineWindowHeight()*0.02)
+          Next
+        EndIf
+        
+        If game_mode = #GAMEMODE_CTF
+          glBindTexture_(#GL_TEXTURE_2D,texture_intel)
+          glColor3f_(team_1_red/255.0,team_1_green/255.0,team_1_blue/255.0)
+          drawRect((engineWindowWidth()-engineWindowHeight()*0.8)*0.5+engineWindowHeight()*0.8/512.0*team_1_intel_x-engineWindowHeight()*0.01,engineWindowHeight()*0.1+engineWindowHeight()*0.8/512.0*team_1_intel_z-engineWindowHeight()*0.01,engineWindowHeight()*0.02,engineWindowHeight()*0.02)
+          glColor3f_(team_2_red/255.0,team_2_green/255.0,team_2_blue/255.0)
+          drawRect((engineWindowWidth()-engineWindowHeight()*0.8)*0.5+engineWindowHeight()*0.8/512.0*team_2_intel_x-engineWindowHeight()*0.01,engineWindowHeight()*0.1+engineWindowHeight()*0.8/512.0*team_2_intel_z-engineWindowHeight()*0.01,engineWindowHeight()*0.02,engineWindowHeight()*0.02)
+          glBindTexture_(#GL_TEXTURE_2D,texture_medical)
+          glColor3f_(team_1_red/255.0,team_1_green/255.0,team_1_blue/255.0)
+          drawRect((engineWindowWidth()-engineWindowHeight()*0.8)*0.5+engineWindowHeight()*0.8/512.0*team_1_base_x-engineWindowHeight()*0.01,engineWindowHeight()*0.1+engineWindowHeight()*0.8/512.0*team_1_base_z-engineWindowHeight()*0.01,engineWindowHeight()*0.02,engineWindowHeight()*0.02)
+          glColor3f_(team_2_red/255.0,team_2_green/255.0,team_2_blue/255.0)
+          drawRect((engineWindowWidth()-engineWindowHeight()*0.8)*0.5+engineWindowHeight()*0.8/512.0*team_2_base_x-engineWindowHeight()*0.01,engineWindowHeight()*0.1+engineWindowHeight()*0.8/512.0*team_2_base_z-engineWindowHeight()*0.01,engineWindowHeight()*0.02,engineWindowHeight()*0.02)
+        EndIf
+        
+        glBindTexture_(#GL_TEXTURE_2D,texture_player)
+        For k=0 To 32
+          If player_connected(k) = 1 And player_dead(k) = 0 And teamlist(k) > -1 And teamlist(k) < 2 And (teamlist(k) = own_team Or own_team = -1) And Not k = own_player_id
+            If teamlist(k) = 0
+              glColor3f_(team_1_red/255.0,team_1_green/255.0,team_1_blue/255.0)
+            EndIf
+            If teamlist(k) = 1
+              glColor3f_(team_2_red/255.0,team_2_green/255.0,team_2_blue/255.0)
+            EndIf
+            drawRectRotated((engineWindowWidth()-engineWindowHeight()*0.8)*0.5+engineWindowHeight()*0.8/512.0*player_x(k)-engineWindowHeight()*0.01,engineWindowHeight()*0.1+engineWindowHeight()*0.8/512.0*player_z(k)-engineWindowHeight()*0.01,engineWindowHeight()*0.02,engineWindowHeight()*0.02,Degree(ATan2(player_angle_x(k),player_angle_z(k)))+90.0)
+          EndIf
+        Next
+        glColor3f_(0.0,1.0,1.0)
+        drawRectRotated((engineWindowWidth()-engineWindowHeight()*0.8)*0.5+engineWindowHeight()*0.8/512.0*cameraPosX()-engineWindowHeight()*0.01,engineWindowHeight()*0.1+engineWindowHeight()*0.8/512.0*cameraPosZ()-engineWindowHeight()*0.01,engineWindowHeight()*0.02,engineWindowHeight()*0.02,Degree(-camera_rot_x)+180.0)
       Else
         drawRectSub(engineWindowWidth()-engineWindowHeight()*0.31,engineWindowHeight()*0.01,engineWindowHeight()*0.3,engineWindowHeight()*0.3,Round((cameraPosX()/512.0-0.1)/0.001953125,#PB_Round_Nearest)*0.001953125,Round((cameraPosZ()/512.0-0.1)/0.001953125,#PB_Round_Nearest)*0.001953125,0.2,0.2)
       EndIf
@@ -1827,21 +1947,75 @@ Procedure updateEngineWindow(event, dt.f)
     EndIf
     
     If escape_menu = 1
-      glColor3f_(1.0,0.0,0.0)
-      drawString((engineWindowWidth()-stringWidth(engineWindowHeight()*0.1,"Exit game? y/n"))/2,(engineWindowHeight()-engineWindowHeight()*0.1)/2,engineWindowHeight()*0.1,"Exit game? y/n")
+      Select screen
+        Case 0:
+          glColor3f_(1.0,0.0,0.0)
+          drawString((engineWindowWidth()-stringWidth(engineWindowHeight()*0.1,"Exit game? y/n"))/2,(engineWindowHeight()-engineWindowHeight()*0.1)/2,engineWindowHeight()*0.1,"Exit game? y/n")
+          Define mx.l = WindowMouseX(0)
+          Define my.l = WindowMouseY(0)
+          Define button = 0
+          If mx>engineWindowWidth()*0.05 And mx<engineWindowWidth()*0.05+engineWindowWidth()*0.3
+            If my>engineWindowHeight()-engineWindowHeight()*0.2 And my<engineWindowHeight()-engineWindowHeight()*0.2+engineWindowHeight()*0.1
+              button = 1
+            EndIf
+            If my>engineWindowHeight()-engineWindowHeight()*0.3125 And my<engineWindowHeight()-engineWindowHeight()*0.3125+engineWindowHeight()*0.1
+              button = 2
+            EndIf
+            If my>engineWindowHeight()-engineWindowHeight()*0.425 And my<engineWindowHeight()-engineWindowHeight()*0.425+engineWindowHeight()*0.1
+              button = 3
+            EndIf
+          EndIf
+          If event = #PB_Event_LeftClick
+            Select button
+              Case 1:
+                shutdown_game()
+              Case 2:
+                screen = 1
+            EndSelect
+          EndIf
+          glBindTexture_(#GL_TEXTURE_2D,0)
+          If button = 1 : glColor3f_(1.0,0.75,0.125) : Else : glColor3f_(1.0*0.9,0.75*0.9,0.125*0.9) : EndIf
+          drawRect(engineWindowWidth()*0.05,engineWindowHeight()-engineWindowHeight()*0.2,engineWindowWidth()*0.3,engineWindowHeight()*0.1)
+          If button = 2 : glColor3f_(1.0,0.75,0.125) : Else : glColor3f_(1.0*0.9,0.75*0.9,0.125*0.9) : EndIf
+          drawRect(engineWindowWidth()*0.05,engineWindowHeight()-engineWindowHeight()*0.3125,engineWindowWidth()*0.3,engineWindowHeight()*0.1)
+          If button = 3 : glColor3f_(1.0,0.75,0.125) : Else : glColor3f_(1.0*0.9,0.75*0.9,0.125*0.9) : EndIf
+          drawRect(engineWindowWidth()*0.05,engineWindowHeight()-engineWindowHeight()*0.425,engineWindowWidth()*0.3,engineWindowHeight()*0.1)
+          glColor3f_(1.0,1.0,1.0)
+          drawString(engineWindowWidth()*0.1,engineWindowHeight()-engineWindowHeight()*0.18,engineWindowHeight()*0.06,"Exit game")
+          drawString(engineWindowWidth()*0.1,engineWindowHeight()-engineWindowHeight()*0.2925,engineWindowHeight()*0.06,"Change team")
+          drawString(engineWindowWidth()*0.1,engineWindowHeight()-engineWindowHeight()*0.405,engineWindowHeight()*0.06,"Change weapon")
+        Case 1:
+          glBindTexture_(#GL_TEXTURE_2D,0)
+          glColor3f_(team_1_red/255.0,team_1_green/255.0,team_1_blue/255.0)
+          drawRect(engineWindowWidth()*0.05,engineWindowHeight()-engineWindowHeight()*0.2,engineWindowWidth()*0.3,engineWindowHeight()*0.1)
+          glColor3f_(team_2_red/255.0,team_2_green/255.0,team_2_blue/255.0)
+          drawRect(engineWindowWidth()-engineWindowWidth()*0.35,engineWindowHeight()-engineWindowHeight()*0.2,engineWindowWidth()*0.3,engineWindowHeight()*0.1)
+          glColor3f_(1.0,1.0,1.0)
+          drawString(engineWindowWidth()*0.1,engineWindowHeight()-engineWindowHeight()*0.18,engineWindowHeight()*0.06,"Join "+team_1_name.s)
+          drawString(engineWindowWidth()-engineWindowWidth()*0.3,engineWindowHeight()-engineWindowHeight()*0.18,engineWindowHeight()*0.06,"Join "+team_2_name.s)
+       EndSelect
     EndIf
     
         
-    If player_dead(own_player_id) = 1 And Not own_team = -1
+    If Not own_player_id = -1 And player_dead(own_player_id) = 1 And Not own_team = -1
       glColor3f_(1.0,0.0,0.0)
-      Define s$ = "INSERT COIN: "+Str(player_secounds_till_respawn(own_player_id))
+      Define wtime.l = player_secounds_till_respawn(own_player_id)
+      If wtime < 0
+        wtime = 0
+      EndIf
+      Define s$ = "INSERT COIN: "+Str(wtime)
       drawString((engineWindowWidth()-stringWidth(engineWindowHeight()*0.1,s$))*0.5,engineWindowHeight()-engineWindowHeight()*0.2,engineWindowHeight()*0.1,s$)
     EndIf
     
-    debug_message.s = Str(action_lock-ElapsedMilliseconds())+"ms lock | "+Str(fps)+"fps"+" | "+Str(particles_used)+"particles"
-    
+    Define tent.l = nearestTent(cameraPosX(),cameraPosY(),cameraPosZ())
+    If tent >= 0
+      debug_message.s = Str(action_lock-ElapsedMilliseconds())+"ms lock | "+Str(fps)+"fps"+" | "+Str(particles_used)+"particles"+" | "+StrF(tent_progress(tent))
+    Else
+      debug_message.s = Str(action_lock-ElapsedMilliseconds())+"ms lock | "+Str(fps)+"fps"+" | "+Str(particles_used)+"particles"+" | no tent near"+StrF((ElapsedMilliseconds()-last_damage_source_time)/3000.0)
+    EndIf
     glColor3f_(1.0,1.0,1.0)
     drawString((engineWindowWidth()-stringWidth(engineWindowHeight()*0.04,debug_message.s))*0.5,0.0,engineWindowHeight()*0.04,debug_message.s)
+    
     If spectate = 0
       If own_hp > 30
         glColor3f_(1.0,1.0,1.0)
@@ -1851,9 +2025,14 @@ Procedure updateEngineWindow(event, dt.f)
       drawString((engineWindowWidth()-stringWidth(engineWindowHeight()*0.05,Str(own_hp)+" HP"))/2,engineWindowHeight()-engineWindowHeight()*0.075,engineWindowHeight()*0.05,Str(own_hp)+" HP")
       
       glColor3f_(1.0,1.0,1.0)
-      ;glBindTexture_(#GL_TEXTURE_2D,texture_indicator)
-      ;drawRect((engineWindowWidth()-engineWindowWidth()*0.15)/2,(engineWindowHeight()-engineWindowWidth()*0.15)/2,engineWindowWidth()*0.15,engineWindowWidth()*0.15)
-      ;glBindTexture_(#GL_TEXTURE_2D,0)
+      If last_damage_source_type = #DAMAGE_SOURCE_WEAPON And ElapsedMilliseconds()-last_damage_source_time<3000
+        glBindTexture_(#GL_TEXTURE_2D,texture_indicator)
+        glColor4f_(1.0,1.0,1.0,1.0-(ElapsedMilliseconds()-last_damage_source_time)/3000.0)
+        Define direction.f = 360.0-((360.0-(Degree(ATan2(cameraPosX()-last_damage_source_x,cameraPosZ()-last_damage_source_z))+180.0)-90.0)-(Degree(camera_rot_x)-Int(Degree(camera_rot_x)/360.0)*360.0)+180.0)
+        drawRectRotated((engineWindowWidth()-engineWindowWidth()*0.15)/2,(engineWindowHeight()-engineWindowWidth()*0.15)/2,engineWindowWidth()*0.15,engineWindowWidth()*0.15,direction)
+        glBindTexture_(#GL_TEXTURE_2D,0)
+        glColor4f_(1.0,1.0,1.0,1.0)
+      EndIf
     EndIf
   EndIf
     
@@ -1889,7 +2068,6 @@ Procedure updateEngineWindow(event, dt.f)
         glDisableClientState_(#GL_VERTEX_ARRAY)
         glDisableClientState_(#GL_COLOR_ARRAY)
         glEndList_()
-        ;Debug Str((chunk_z*64.0+chunk_x)/4096.0*100.0)+"%"
       Next
     Next
     
@@ -1936,12 +2114,12 @@ Procedure drawScene(dt.f,shadowed.l)
        Next
      Next
      
-    If overview_update_needed = 1
-      ;If Not map_texture_id = -1
-        ;texture_free(map_texture_id)
-        ;map_texture_id = -1
-      ;EndIf   
-      ;map_texture_id = loadTextureFromImage(map_overview_tmp_image,0,0,0,0)
+    If overview_update_needed = 1 Or map_texture_id = -1
+      If Not map_texture_id = -1
+        updateTextureFromImage(map_texture_id,map_overview_tmp_image)
+      Else   
+        map_texture_id = loadTextureFromImage(map_overview_tmp_image,0,0,0,0,0)
+      EndIf
     EndIf
      
     If spectate = 1
@@ -1983,11 +2161,13 @@ Procedure drawScene(dt.f,shadowed.l)
          ;If b>63
            ;b - 64
            ;glTranslatef_(0.0,0.0,-512.0)
-         ;EndIf
-         If shadowed = 0
-           glCallList_(display_list_ids(a,b))
-         Else
-           glCallList_(display_list_ids_shadowed(a,b))
+           ;EndIf
+         If chunk_x>=0 And chunk_z>=0 And chunk_x<64 And chunk_z<64
+          If shadowed = 0
+            glCallList_(display_list_ids(a,b))
+          Else
+            glCallList_(display_list_ids_shadowed(a,b))
+          EndIf
          EndIf
          ;glPopMatrix_()
        Next
@@ -2019,6 +2199,22 @@ Procedure drawScene(dt.f,shadowed.l)
   glBegin_(#GL_QUADS)
   updateFallingBlocks(dt)
   glEnd_()
+  
+  If Not own_player_id = -1 And player_draw_line(own_player_id) = 1 And Not build_block_x = -1 And object_distance < 4.0
+    Define count.l = cube_line_native(own_line_start_x,own_line_start_z,64-own_line_start_y,build_block_x,build_block_z,64-build_block_y)
+    Define i.l
+    glPolygonMode_(#GL_FRONT_AND_BACK,#GL_LINE)
+    glBegin_(#GL_QUADS)
+    glColor4f_(1.0,1.0,1.0,1.0)
+    For i=0 To count-1
+      If count > player_blocks(own_player_id)
+        glColor4f_(1.0,0.0,0.0,1.0)
+      EndIf
+      rendercubeat(cube_line_x(i),cube_line_y(i),cube_line_z(i),1.0,1.0,1.0)
+    Next
+    glEnd_()
+    glPolygonMode_(#GL_FRONT_AND_BACK,#GL_FILL)
+  EndIf
   
   
   Define tmp_x.f = cameraPosX()+2.0*Sin(camera_rot_x)*Sin(camera_rot_y)
@@ -2060,11 +2256,7 @@ Procedure drawScene(dt.f,shadowed.l)
   If Not own_player_id = -1 And player_item(own_player_id) = 1 And Not build_block_x = -1 And object_distance < 4.0
     glPolygonMode_(#GL_FRONT_AND_BACK,#GL_LINE)
     glBegin_(#GL_QUADS)
-    If shadowed = 0
-      glColor4f(own_block_red/255.0,own_block_green/255.0,own_block_blue/255.0,1.0)
-    Else
-      glColor4f(own_block_red/255.0*0.5,own_block_green/255.0*0.5,own_block_blue/255.0*0.5,1.0)
-    EndIf
+    glColor4f_(1.0,1.0,1.0,1.0)
     rendercubeat(build_block_x,build_block_y,build_block_z,1.0,1.0,1.0)
     glEnd_()
     glPolygonMode_(#GL_FRONT_AND_BACK,#GL_FILL)
@@ -2102,11 +2294,11 @@ Procedure drawScene(dt.f,shadowed.l)
   
   If game_mode = #GAMEMODE_CTF
     glPushMatrix_()
-    glTranslatef_(team_1_base_x,team_1_base_y+0.75,team_1_base_z)
+    glTranslatef_(team_1_base_x-1.0,team_1_base_y+0.75,team_1_base_z-0.75)
     glCallList_(kv6_cp)
     glPopMatrix_()
     glPushMatrix_()
-    glTranslatef_(team_2_base_x,team_2_base_y+0.75,team_2_base_z)
+    glTranslatef_(team_2_base_x-1.0,team_2_base_y+0.75,team_2_base_z-0.75)
     glCallList_(kv6_cp+1)
     glPopMatrix_()
     If team_1_intel_player = -1
@@ -2126,18 +2318,21 @@ Procedure drawScene(dt.f,shadowed.l)
     Define k
     For k=0 To tent_count-1
       glPushMatrix_()
-      glTranslatef_(tent_x(k),tent_y(k)+0.75,tent_z(k))
+      glTranslatef_(tent_x(k)-1.0,tent_y(k)+0.75,tent_z(k)-0.75)
       glCallList_(kv6_cp+tent_team(k))
       glPopMatrix_()
     Next
   EndIf
 EndProcedure
 ; IDE Options = PureBasic 5.31 (Windows - x86)
-; CursorPosition = 1840
-; FirstLine = 1164
-; Folding = AgE-
+; CursorPosition = 1130
+; FirstLine = 314
+; Folding = AQg7
 ; EnableUnicode
 ; EnableXP
 ; UseMainFile = main.pb
 ; Executable = aos.exe
 ; DisableDebugger
+; EnableCompileCount = 0
+; EnableBuildCount = 0
+; EnableExeConstant

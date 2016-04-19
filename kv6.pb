@@ -78,7 +78,7 @@ Procedure.l loadKV6(filename$,custom_color.l)
           Define x2.f = x*0.25
           Define y2.f = (zsiz-y)*0.25
           Define z2.f = z*0.25
-          If blockdata_occupied(x,y,z+1) = 0;blockdata_visfaces(x,y,z) & 5
+          If z+1>xsiz Or blockdata_occupied(x,y,z+1) = 0
             vertex_buffer = writeVertexToBuffer(vertex_buffer,0.25+x2,0.25+y2,0.25+z2)
             vertex_buffer = writeVertexToBuffer(vertex_buffer,0.0+x2,0.25+y2,0.25+z2)
             vertex_buffer = writeVertexToBuffer(vertex_buffer,0.25+x2,0.0+y2,0.25+z2)
@@ -96,7 +96,7 @@ Procedure.l loadKV6(filename$,custom_color.l)
             color_buffer = writeColorToBuffer(color_buffer,red*0.7,green*0.7,blue*0.7)
             triangle_count + 6
           EndIf
-          If blockdata_occupied(x,y,z-1) = 0;blockdata_visfaces(x,y,z) & 6
+          If z-1<0 Or blockdata_occupied(x,y,z-1) = 0
             vertex_buffer = writeVertexToBuffer(vertex_buffer,0.0+x2,0.0+y2,0.0+z2)
             vertex_buffer = writeVertexToBuffer(vertex_buffer,0.0+x2,0.25+y2,0.0+z2)
             vertex_buffer = writeVertexToBuffer(vertex_buffer,0.25+x2,0.0+y2,0.0+z2)
@@ -114,7 +114,7 @@ Procedure.l loadKV6(filename$,custom_color.l)
             color_buffer = writeColorToBuffer(color_buffer,red*0.7,green*0.7,blue*0.7)
             triangle_count + 6
           EndIf
-          If blockdata_occupied(x,y+1,z) = 0;blockdata_visfaces(x,y,z) & 4
+          If y-1<0 Or blockdata_occupied(x,y+1,z) = 0
             vertex_buffer = writeVertexToBuffer(vertex_buffer,0.0+x2,0.0+y2,0.0+z2)
             vertex_buffer = writeVertexToBuffer(vertex_buffer,0.25+x2,0.0+y2,0.0+z2)
             vertex_buffer = writeVertexToBuffer(vertex_buffer,0.0+x2,0.0+y2,0.25+z2)
@@ -132,7 +132,7 @@ Procedure.l loadKV6(filename$,custom_color.l)
             color_buffer = writeColorToBuffer(color_buffer,red*0.5,green*0.5,blue*0.5)
             triangle_count + 6
           EndIf
-          If blockdata_occupied(x+1,y,z) = 0;blockdata_visfaces(x,y,z) & 1
+          If x+1>=xsiz Or blockdata_occupied(x+1,y,z) = 0
             vertex_buffer = writeVertexToBuffer(vertex_buffer,0.25+x2,0.25+y2,0.25+z2)
             vertex_buffer = writeVertexToBuffer(vertex_buffer,0.25+x2,0.0+y2,0.25+z2)
             vertex_buffer = writeVertexToBuffer(vertex_buffer,0.25+x2,0.25+y2,0.0+z2)
@@ -150,7 +150,7 @@ Procedure.l loadKV6(filename$,custom_color.l)
             color_buffer = writeColorToBuffer(color_buffer,red*0.9,green*0.9,blue*0.9)
             triangle_count + 6
           EndIf
-          If blockdata_occupied(x-1,y,z) = 0;blockdata_visfaces(x,y,z) & 2
+          If x-1<0 Or blockdata_occupied(x-1,y,z) = 0
             vertex_buffer = writeVertexToBuffer(vertex_buffer,0.0+x2,0.0+y2,0.0+z2)
             vertex_buffer = writeVertexToBuffer(vertex_buffer,0.0+x2,0.0+y2,0.25+z2)
             vertex_buffer = writeVertexToBuffer(vertex_buffer,0.0+x2,0.25+y2,0.0+z2)
@@ -168,7 +168,7 @@ Procedure.l loadKV6(filename$,custom_color.l)
             color_buffer = writeColorToBuffer(color_buffer,red*0.9,green*0.9,blue*0.9)
             triangle_count + 6
           EndIf
-          If blockdata_occupied(x,y-1,z) = 0;blockdata_visfaces(x,y,z) & 3
+          If y-1<0 Or blockdata_occupied(x,y-1,z) = 0
             vertex_buffer = writeVertexToBuffer(vertex_buffer,0.25+x2,0.25+y2,0.25+z2)
             vertex_buffer = writeVertexToBuffer(vertex_buffer,0.25+x2,0.25+y2,0.0+z2)
             vertex_buffer = writeVertexToBuffer(vertex_buffer,0.0+x2,0.25+y2,0.25+z2)
@@ -186,7 +186,6 @@ Procedure.l loadKV6(filename$,custom_color.l)
             color_buffer = writeColorToBuffer(color_buffer,red,green,blue)
             triangle_count + 6
           EndIf
-          ;rendercubeat(x*0.25,(zsiz-y)*0.25,z*0.25,0.25,0.25,0.25)
         EndIf
       Next
     Next
@@ -246,15 +245,18 @@ Procedure.l kv6_sz(id.l)
 EndProcedure
 
 Procedure.l loadKV6ForTeams(filename$,custom_color1.l,custom_color2.l)
-  Define id.l = loadKV6(filename$,custom_color1)
-  loadKV6(filename$,custom_color2)
-  loadKV6(filename$,0)
+  Define id.l = loadKV6("kv6/"+ReadPreferenceString("team_1_skin_prefix","")+filename$,custom_color1)
+  loadKV6("kv6/"+ReadPreferenceString("team_2_skin_prefix","")+filename$,custom_color2)
+  loadKV6("kv6/"+filename$,0)
   ProcedureReturn id.l
 EndProcedure
 ; IDE Options = PureBasic 5.31 (Windows - x86)
-; CursorPosition = 116
-; FirstLine = 87
+; CursorPosition = 248
+; FirstLine = 194
 ; Folding = -
 ; EnableUnicode
 ; EnableXP
 ; UseMainFile = main.pb
+; EnableCompileCount = 0
+; EnableBuildCount = 0
+; EnableExeConstant

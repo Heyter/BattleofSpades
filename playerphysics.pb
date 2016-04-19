@@ -26,10 +26,9 @@ Procedure.f Max(a.f,b.f)
  Procedure repositionPlayer(id.l)
 	  player_eye_y(id) = player_y(id)
 	  Define f5.f = player_lastClimbTime(id) - getTime()
-	  ;TODO: ?
-		;If f > -0.25
-;			player_eye_y(id) + (f5 + 0.25) / 0.25
-		;EndIf
+		If f5 > -0.25
+			player_eye_y(id) + (f5 + 0.25) / 0.25
+		EndIf
 EndProcedure
  
  Procedure boxClipMove(fsynctics.f, id.l)
@@ -255,15 +254,14 @@ Procedure moveplayer(dt.f, id.l)
 				  Else
 				    player_step_sound_id(id) = createSoundSource(Random(3),player_x(id),player_y(id),player_z(id),24.0)
 				  EndIf
-					;TODO world->GetListener()->PlayerMadeFootstep(this)
 					madeFootstep = 1
 				EndIf
 			Wend
 		EndIf
 EndProcedure
 ; IDE Options = PureBasic 5.31 (Windows - x86)
-; CursorPosition = 199
-; FirstLine = 120
+; CursorPosition = 68
+; FirstLine = 27
 ; Folding = --
 ; EnableUnicode
 ; EnableXP

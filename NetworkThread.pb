@@ -9,7 +9,8 @@ Global game_mode.l = -1
 
 #CONNECTION_ERROR_DISCONNECT = 1
 #CONNECTION_ERROR_MAP_DATA_CORRUPTED = 100
-#NETWORK_PROCOTOL_VERSION = 3 ;(3: 0.75)(4: 0.76)
+#NETWORK_PROTOCOL_VERSION_075 = 3
+#NETWORK_PROTOCOL_VERSION_076 = 4
 
 #ENET_NONE = 0
 #ENET_CONNECT = 1
@@ -18,6 +19,11 @@ Global game_mode.l = -1
 
 #GAMEMODE_CTF = 0
 #GAMEMODE_TC = 1
+
+#DAMAGE_SOURCE_FALL = 0
+#DAMAGE_SOURCE_WEAPON = 1
+
+#MAX_CHAT_LENGTH = 90
 
 Declare sendOSHandshakeReturn(a.l)
 Declare sendOSVersion()
@@ -29,7 +35,7 @@ EndProcedure
 Procedure networkThread(*unused)
   Repeat
     network_ping = CallCFunction(0,"getping")
-    Define event = CallCFunction(0,"clientcheckforevent",1000)
+    Define event = CallCFunction(0,"clientcheckforevent",5000)
   If event = #ENET_RECIEVE ;recieve
     Define packet_pointer = CallCFunction(0,"getpacketdata")
     Define packet_len = CallCFunction(0,"getpacketlen")
@@ -43,7 +49,7 @@ Procedure networkThread(*unused)
     If packet_id = 1 ;orientation update
       Debug "orientation update!"
     EndIf
-    If packet_id = 2 ;position update for all players
+    If packet_id = 2 And ReadPreferenceInteger("use_076",0) = 0 ;position update for all players
       player_update_ongoing = 1
       player_old_position_time = player_new_position_time
       player_new_position_time = ElapsedMilliseconds()
@@ -62,6 +68,30 @@ Procedure networkThread(*unused)
           player_angle_x(k) = PeekF(packet_pointer+13+k*24)
           player_angle_z(k) = PeekF(packet_pointer+17+k*24)
           player_angle_y(k) = -PeekF(packet_pointer+21+k*24)
+        EndIf
+      Next
+      player_update_ongoing = 0
+    EndIf
+    If packet_id = 2 And ReadPreferenceInteger("use_076",0) = 1 ;position update for all players
+      player_update_ongoing = 1
+      player_old_position_time = player_new_position_time
+      player_new_position_time = ElapsedMilliseconds()
+      Define k
+      For k=0 To 31
+        Define player_id = PeekA(packet_pointer+1)
+        If Not player_id = own_player_id And player_id > -1 And player_id < 32
+          player_old_x(player_id) = player_x(player_id)
+          player_old_y(player_id) = player_y(player_id)
+          player_old_z(player_id) = player_z(player_id)
+          player_x(player_id) = PeekF(packet_pointer+2+k*25)
+          player_z(player_id) = PeekF(packet_pointer+6+k*25)
+          player_y(player_id) = (64.0-PeekF(packet_pointer+10+k*25))+0.5
+          player_old_angle_x(player_id) = player_angle_x(player_id)
+          player_old_angle_y(player_id) = player_angle_y(player_id)
+          player_old_angle_z(player_id) = player_angle_z(player_id)
+          player_angle_x(player_id) = PeekF(packet_pointer+14+k*25)
+          player_angle_z(player_id) = PeekF(packet_pointer+18+k*25)
+          player_angle_y(player_id) = -PeekF(packet_pointer+22+k*25)
         EndIf
       Next
       player_update_ongoing = 0
@@ -95,8 +125,8 @@ Procedure networkThread(*unused)
       Define hp = PeekA(packet_pointer+1)
       Define type = PeekA(packet_pointer+2)
       Define x_pos = PeekF(packet_pointer+3)
-      Define y_pos = PeekF(packet_pointer+7)
-      Define z_pos = PeekF(packet_pointer+11)
+      Define z_pos = PeekF(packet_pointer+7)
+      Define y_pos = 64.0-PeekF(packet_pointer+11)
       own_hp = hp
       last_damage_source_time = ElapsedMilliseconds()
       last_damage_source_type = type
@@ -160,12 +190,13 @@ Procedure networkThread(*unused)
 	    player_moveDistance(player_id) = 0.0
 	    player_moveSteps(player_id) = 0
 	    player_connected(player_id) = 1
+	    player_blocks(player_id) = 50
+	    player_draw_line(player_id) = 0
 	    If player_id = own_player_id
 	      own_hp = 100
 	    EndIf
     EndIf
     If packet_id = 10 ;short player data
-      MessageRequester("lel","")
       Debug "Recieved unexpected short player data!"
     EndIf
     If packet_id = 11 ;move object
@@ -242,6 +273,8 @@ Procedure networkThread(*unused)
 	    player_moveDistance(player_id) = 0.0
 	    player_moveSteps(player_id) = 0
 	    player_connected(player_id) = 1
+	    player_blocks(player_id) = 50
+	    player_draw_line(player_id) = 0
       If player_id = own_player_id
         own_hp = 100
         own_team = team
@@ -306,7 +339,6 @@ Procedure networkThread(*unused)
         setBlockSafe(x_pos,y_pos,z_pos,RGB(player_block_color_red(player_id),player_block_color_green(player_id),player_block_color_blue(player_id)))
         createSoundSource(8,x_pos+0.5,y_pos+0.5,z_pos+0.5,16.0)
       EndIf
-      ;map_createoverview(1024)
     EndIf
     If packet_id = 14 ;block line
       Define player_id = PeekA(packet_pointer+1)
@@ -398,6 +430,8 @@ Procedure networkThread(*unused)
           tent_z(k) = PeekF(packet_pointer+37+k*13)
           tent_y(k) = 64.0-PeekF(packet_pointer+41+k*13)
           tent_team(k) = PeekA(packet_pointer+42+k*13)
+          tent_progress(k) = 1.0
+          tent_progress_team(k) = 2
         Next
       EndIf
       If Not gamemode_id = #GAMEMODE_CTF And Not gamemode_id = #GAMEMODE_TC
@@ -429,6 +463,8 @@ Procedure networkThread(*unused)
         player_old_angle_z(player_id) = 0.0
         player_ammo(player_id) = 0
         player_connected(player_id) = 0
+        player_blocks(player_id) = 50
+        player_draw_line(player_id) = 0
       Next
       
       own_team = -1
@@ -466,7 +502,7 @@ Procedure networkThread(*unused)
       If type = 4
         kill_action_message(free_index) = namelist(killed_player_id)+" fell too far"
         kill_action_team(free_index) = teamlist(killed_player_id)
-        createSoundSource(10,getPlayerX(killed_player_id),getPlayerY(killed_player_id),getPlayerZ(killed_player_id),16.0)
+        createSoundSource(10,player_x(killed_player_id),player_y(killed_player_id),player_z(killed_player_id),16.0)
       EndIf
       If type = 5
         kill_action_message(free_index) = namelist(killed_player_id)+" changed teams"
@@ -484,7 +520,7 @@ Procedure networkThread(*unused)
         EndIf
         player_kills(killer_id) + 1
         kill_action_team(free_index) = teamlist(killer_id)
-        createSoundSource(11,getPlayerX(killed_player_id),getPlayerY(killed_player_id),getPlayerZ(killed_player_id),16.0)
+        createSoundSource(11,player_x(killed_player_id),player_y(killed_player_id),player_z(killed_player_id),16.0)
       EndIf
       If killer_id = own_player_id
         kill_action_team(free_index) = -1
@@ -576,11 +612,28 @@ Procedure networkThread(*unused)
       player_ammo(player_id) = 0
       player_connected(player_id) = 0
     EndIf
-    If packet_id = 21 ;territory capture
-      
+    If packet_id = 21 And game_mode = #GAMEMODE_TC ;territory capture
+      Define object = PeekA(packet_pointer+1)
+      Define winning = PeekA(packet_pointer+2)
+      Define team = PeekA(packet_pointer+3)
+      If object >= 0 And object < 16
+        tent_team(object) = team
+        tent_progress(object) = 1.0
+        tent_progress_team(object) = team
+      EndIf
+      If winning = 1 And team = own_team
+        createSoundSourceAtCamera(25)
+      EndIf
     EndIf
-    If packet_id = 22 ;progressbar
-      
+    If packet_id = 22 And game_mode = #GAMEMODE_TC ;progressbar
+      Define object = PeekA(packet_pointer+1)
+      Define team_capturing = PeekA(packet_pointer+2)
+      Define rate = PeekA(packet_pointer+3) ;aka capture speed
+      Define progress.f = PeekF(packet_pointer+4)
+      If object >= 0 And object < 16 And progress >= 0.0 And progress <= 1.0 And team_capturing >= 0 And team_capturing<3
+        tent_progress(object) = progress
+        tent_progress_team(object) = team_capturing
+      EndIf
     EndIf
     If packet_id = 23 And game_mode = #GAMEMODE_CTF ;intel capture
       Define player_id = PeekA(packet_pointer+1)
@@ -629,6 +682,7 @@ Procedure networkThread(*unused)
       own_ammo = mag_size(own_weapon)
       own_max_ammo = max_ammo(own_weapon)
       own_hp = 100
+      player_blocks(own_player_id) = 50
     EndIf
     If packet_id = 27 ;set fog color
       map_fog_blue = PeekA(packet_pointer+2)
@@ -641,7 +695,7 @@ Procedure networkThread(*unused)
       Define reserve_ammo = PeekA(packet_pointer+3)
       player_ammo(player_id) = clip_ammo
       If Not player_id = own_player_id
-        createSoundSource(12+weaponlist(player_id),getPlayerX(player_id),getPlayerY(player_id),getPlayerZ(player_id),16.0)
+        createSoundSource(12+weaponlist(player_id),player_x(player_id),player_y(player_id),player_z(player_id),16.0)
       EndIf
     EndIf
     If packet_id = 29 ;change team (only server side)
@@ -652,6 +706,12 @@ Procedure networkThread(*unused)
       weapon = PeekA(packet_pointer+2)
       weaponlist(player_id) = weapon
     EndIf
+    
+    If packet_id = 31 And ReadPreferenceInteger("use_076",0) = 1 ;map cached
+      Define cached.l = PeekA(packet_pointer+1)
+      MessageRequester("Network thread",Str(cached))
+    EndIf
+      
     
     If ReadPreferenceInteger("imitate_openspades",0) = 1
       If packet_id = 31 ;handshake init
@@ -725,13 +785,26 @@ Procedure sendGrenade(x.f, y.f, z.f, defuse_time.l)
   PokeF(packetdata+6,x)
   PokeF(packetdata+10,z)
   PokeF(packetdata+14,64.0-y)
-  Define vector_x.f = Sin(camera_rot_x)*Sin(camera_rot_y)
-  Define vector_y.f = Cos(camera_rot_y)
-  Define vector_z.f = Cos(camera_rot_x)*Sin(camera_rot_y)
+  Define vector_x.f = Sin(camera_rot_x)*Sin(camera_rot_y)*100.0
+  Define vector_y.f = Cos(camera_rot_y)*100.0
+  Define vector_z.f = Cos(camera_rot_x)*Sin(camera_rot_y)*100.0
   PokeF(packetdata+18,vector_x)
   PokeF(packetdata+22,vector_z)
   PokeF(packetdata+26,-vector_y)
   sendpacket(packetdata,30)
+EndProcedure
+
+Procedure sendBlockLine(player_id.l,sx.l,sy.l,sz.l,ex.l,ey.l,ez.l)
+  Define packetdata.l = AllocateMemory(26)
+  PokeA(packetdata,14) ;block line
+  PokeA(packetdata+1,player_id)
+  PokeL(packetdata+2,sx)
+  PokeL(packetdata+6,sz)
+  PokeL(packetdata+10,64-sy)
+  PokeL(packetdata+14,ex)
+  PokeL(packetdata+18,ez)
+  PokeL(packetdata+22,64-ey)
+  sendpacket(packetdata,26)
 EndProcedure
 
 Procedure sendTool(tool.l)
@@ -743,12 +816,19 @@ Procedure sendTool(tool.l)
 EndProcedure
 
 Procedure sendChat(team.l,message$)
-  Define packetdata.l = AllocateMemory(Len(message$)+3)
-  PokeA(packetdata,17) ;chat message
-  PokeA(packetdata+1,own_player_id)
-  PokeA(packetdata+2,team)
-  PokeS(packetdata+3,message$,Len(message$),#PB_UTF8)
-  sendpacket(packetdata,Len(message$)+3)
+  Define k
+  For k=0 To Len(message$)/#MAX_CHAT_LENGTH-1
+    Define packetdata.l = AllocateMemory(Len(message$)+3)
+    PokeA(packetdata,17) ;chat message
+    PokeA(packetdata+1,own_player_id)
+    PokeA(packetdata+2,team)
+    Define len.l = 90
+    If k = Len(message$)/#MAX_CHAT_LENGTH-1
+      len = Len(message$)-k*90
+    EndIf
+    PokeS(packetdata+3,Mid(message$,k*90+1,len),len,#PB_UTF8)
+    sendpacket(packetdata,Len(message$)+3)
+  Next
 EndProcedure
 
 Global last_position_update.l
@@ -767,7 +847,7 @@ Procedure positiondata(x_pos.f,y_pos.f,z_pos.f)
 EndProcedure
 
 Global last_key_states.l
-Procedure inputdata(forward.l,backward.l,left.l,right.l,shift.l,ctrl.l,space.l)
+Procedure inputdata(forward.l,backward.l,left.l,right.l,shift.l,ctrl.l,sneak.l,space.l)
   Define key_states.l = 0
   If forward = 1
     key_states + 1
@@ -786,6 +866,9 @@ Procedure inputdata(forward.l,backward.l,left.l,right.l,shift.l,ctrl.l,space.l)
   EndIf
   If ctrl = 1
     key_states + 32
+  EndIf
+  If sneak = 1
+    key_states + 64
   EndIf
   If shift = 1
     key_states + 128
@@ -935,7 +1018,12 @@ Procedure.l connect(ip$, port)
   EndIf
   Define ip_pointer = AllocateMemory(Len(ip$)+1)
   PokeS(ip_pointer,ip$,Len(ip$),#PB_UTF8)
-  Define client_connect_l = CallCFunction(0,"clientconnect",ip_pointer,port,#NETWORK_PROCOTOL_VERSION)
+  Define ver.l = #NETWORK_PROTOCOL_VERSION_075
+  If ReadPreferenceInteger("use_076",0) = 1
+    ver = #NETWORK_PROTOCOL_VERSION_076
+  EndIf
+  Define client_connect_l = CallCFunction(0,"clientconnect",ip_pointer,port,ver)
+  Debug client_connect_l
   If client_connect_l = 5000
     ProcedureReturn 2
   EndIf
@@ -951,9 +1039,12 @@ Procedure.l enet_ping()
   ProcedureReturn network_ping
 EndProcedure
 ; IDE Options = PureBasic 5.31 (Windows - x86)
-; CursorPosition = 449
-; FirstLine = 442
-; Folding = +-P7
+; CursorPosition = 789
+; FirstLine = 763
+; Folding = +-f1
 ; EnableUnicode
 ; EnableXP
 ; UseMainFile = main.pb
+; EnableCompileCount = 0
+; EnableBuildCount = 0
+; EnableExeConstant
